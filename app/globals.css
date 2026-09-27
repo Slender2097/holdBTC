@@ -1,0 +1,119 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #03040a;
+  --fg: #e8f0ff;
+  --cyan: #00f0ff;
+  --green: #39ff14;
+  --border: #1a2740;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+}
+
+body.game-active {
+  overflow: hidden;
+  touch-action: none;
+}
+
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #070b14;
+}
+::-webkit-scrollbar-thumb {
+  background: #00f0ff55;
+  border-radius: 3px;
+}
+
+canvas {
+  outline: none;
+  display: block;
+  touch-action: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.alien-panel {
+  background: linear-gradient(160deg, #0c1220 0%, #070b14 100%);
+  border: 1px solid #1a2740;
+  box-shadow: 0 0 0 1px rgba(0, 240, 255, 0.05), inset 0 1px 0 rgba(0, 240, 255, 0.04);
+}
+
+.alien-glow {
+  box-shadow: 0 0 24px rgba(0, 240, 255, 0.15);
+}
+
+.alien-text-glow {
+  text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
+}
+
+.alien-grid {
+  background-image:
+    linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0, 240, 255, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Ranked game frame — bright gold border */
+.ranked-game-frame {
+  position: relative;
+  padding: 2px;
+  border-radius: 0.75rem;
+  background: #0c1220;
+  overflow: hidden;
+  box-shadow:
+    0 0 20px rgba(255, 215, 0, 0.55),
+    0 0 6px rgba(255, 248, 220, 0.85);
+}
+
+.ranked-game-frame::before {
+  content: "";
+  position: absolute;
+  inset: -150%;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0%,
+    transparent 70%,
+    #b8860b 78%,
+    #ffd700 85%,
+    #fff8dc 90%,
+    #ffd700 94%,
+    #b8860b 98%,
+    transparent 100%
+  );
+  animation: ranked-gold-spin 2.2s linear infinite;
+  filter: saturate(1.7) brightness(1.75);
+  z-index: 0;
+}
+
+.ranked-game-frame > .ranked-game-inner {
+  position: relative;
+  z-index: 1;
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 10px;
+  background: #03040a;
+}
+
+@keyframes ranked-gold-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
