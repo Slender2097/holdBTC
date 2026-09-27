@@ -54,7 +54,7 @@ export default function HomePage() {
   }, [payment, nostr.isLoggedIn, nostr.user?.pubkey, nostr.signEvent]);
 
   const handleGameOver = useCallback(
-    (score: number, distance: number) => {
+    (score: number, distance: number, log?: { flaps: number[]; frames: number; width: number; height: number }) => {
       // Capture whether this run was ranked BEFORE consuming credit
       const ranked = payment.hasPaid;
       const token = payment.rankedToken;
@@ -83,14 +83,16 @@ export default function HomePage() {
       }
 
       // Only server-attested ranked scores go to Global Rank
-      if (ranked && token && score > 0) {
+      if (ranked && token && score > 0 && log?.flaps?.length) {
         fetch("/api/submit-score", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             token,
-            score,
-            distance,
+            flaps: log.flaps,
+            frames: log.frames,
+            width: log.width,
+            height: log.height,
           }),
         })
           .then((res) => res.json())
@@ -207,18 +209,13 @@ export default function HomePage() {
             </p>
           )}
 
-          <div
-            className={
-              payment.hasPaid
-                ? "ranked-game-frame aspect-[4/3] max-h-[70vh] w-full"
-                : "relative rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] max-h-[70vh] w-full"
-            }
-          >
-            <div className={payment.hasPaid ? "ranked-game-inner" : "h-full w-full"}>
+          <div className="relative rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh]">
+            <div className="h-full w-full">
               <GameCanvas
-                key={gameKey}
+                key={`${gameKey}-${payment.hasPaid ? payment.rankedSeed ?? "r" : "free"}`}
                 enabled={true}
                 highScore={personalBest}
+                rankedSeed={payment.hasPaid ? payment.rankedSeed : null}
                 onGameOver={handleGameOver}
               />
             </div>
@@ -233,6 +230,13 @@ export default function HomePage() {
           <Leaderboard
             refreshKey={leaderboardKey}
             currentUserPubkey={nostr.user?.pubkey}
+            currentUserName={
+              nostr.user?.displayName ||
+              nostr.user?.profile?.display_name ||
+              nostr.user?.profile?.name ||
+              null
+            }
+            currentUserPicture={nostr.user?.profile?.picture || null}
             personalBest={personalBest}
           />
 

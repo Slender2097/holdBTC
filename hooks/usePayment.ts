@@ -18,6 +18,7 @@ export function usePayment() {
   const [totalPaidSats, setTotalPaidSats] = useState(0);
   const [gamesPlayed, setGamesPlayed] = useState(0);
   const [rankedToken, setRankedToken] = useState<string | null>(null);
+  const [rankedSeed, setRankedSeed] = useState<number | null>(null);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pubkeyRef = useRef<string | null>(null);
@@ -39,6 +40,7 @@ export function usePayment() {
   const consumePayment = useCallback(() => {
     setHasPaid(false);
     setRankedToken(null);
+    setRankedSeed(null);
     setInvoice(null);
     setGamesPlayed((n) => n + 1);
   }, []);
@@ -72,6 +74,7 @@ export function usePayment() {
       return false;
     }
     setRankedToken(result.token);
+    setRankedSeed(typeof result.seed === "number" ? result.seed : null);
     setHasPaid(true);
     setTotalPaidSats((s) => s + ENTRY_FEE_SATS);
     setInvoice(null);
@@ -142,6 +145,7 @@ export function usePayment() {
     gamesPlayed,
     entryFee: ENTRY_FEE_SATS,
     rankedToken,
+    rankedSeed,
     setPubkey: (pk: string | null) => {
       pubkeyRef.current = pk;
     },

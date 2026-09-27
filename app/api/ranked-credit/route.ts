@@ -11,6 +11,7 @@ import {
   isSafeInvoiceId,
   issueRankedToken,
   verifyClaimSecret,
+  verifyRankedToken,
 } from "@/lib/security/rankedToken";
 
 export async function POST(req: NextRequest) {
@@ -71,7 +72,9 @@ export async function POST(req: NextRequest) {
     }
 
     const verifiedPubkey = String(body.authEvent?.pubkey || pubkey).toLowerCase();
-    return NextResponse.json({ ok: true, token: issueRankedToken(verifiedPubkey, invoiceId) });
+    const token = issueRankedToken(verifiedPubkey, invoiceId);
+    const issued = verifyRankedToken(token);
+    return NextResponse.json({ ok: true, token, seed: issued?.seed ?? null });
   } catch (err) {
     console.error("ranked-credit failed:", err);
     return NextResponse.json({ error: "Could not issue ranked credit" }, { status: 502 });

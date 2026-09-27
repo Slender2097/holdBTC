@@ -39,6 +39,7 @@ export interface RankedPayload {
   iat: number;
   exp: number;
   nonce: string;
+  seed: number;
 }
 
 export function issueRankedToken(pubkey: string, invoiceId: string, ttlSec = 2 * 60 * 60): string {
@@ -48,6 +49,7 @@ export function issueRankedToken(pubkey: string, invoiceId: string, ttlSec = 2 *
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + ttlSec,
     nonce: randomBytes(8).toString("hex"),
+    seed: randomBytes(4).readUInt32BE(0),
   };
   const body = b64url(JSON.stringify(payload));
   return `${body}.${hmac(`token:${body}`)}`;

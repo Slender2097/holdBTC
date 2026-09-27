@@ -59,7 +59,7 @@ export async function claimRankedCredit(params: {
   pubkey: string;
   claimSecret: string;
   authEvent?: unknown;
-}): Promise<{ token: string } | { error: string }> {
+}): Promise<{ token: string; seed?: number } | { error: string }> {
   try {
     const res = await fetch("/api/ranked-credit", {
       method: "POST",
@@ -70,7 +70,7 @@ export async function claimRankedCredit(params: {
     if (!res.ok || !data.token) {
       return { error: data.error || "Could not claim ranked credit" };
     }
-    return { token: data.token };
+    return { token: data.token, seed: data.seed };
   } catch (err: any) {
     return { error: err?.message || "Network error claiming credit" };
   }

@@ -1,8 +1,18 @@
-import { GAME, getYearTheme, type YearTheme } from "./constants";
+import { getYearTheme } from "./constants";
 import { getYearFromScore } from "./engine";
 import type { Bird, Candlestick, GameState } from "./types";
 
-/** Draw a themed background based on current year */
+const PAPER = "#f3edd4";
+const INK = "#222222";
+const GREEN_FILL = "#a8e6b3";
+const GREEN_INK = "#2b8a3e";
+const RED_FILL = "#ffa8a8";
+const RED_INK = "#c92a2a";
+
+function wobble(n: number, amp: number) {
+  return Math.sin(n) * amp;
+}
+
 export function drawBackground(
   ctx: CanvasRenderingContext2D,
   width: number,
@@ -12,304 +22,156 @@ export function drawBackground(
   const year = getYearFromScore(state.score);
   const theme = getYearTheme(year);
 
-  // Base gradient
-  const grad = ctx.createLinearGradient(0, 0, 0, height);
-  grad.addColorStop(0, theme.skyTop);
-  grad.addColorStop(1, theme.skyBottom);
-  ctx.fillStyle = grad;
+  ctx.fillStyle = PAPER;
   ctx.fillRect(0, 0, width, height);
 
-  // Special dark mode for 2027+
-  if (theme.isDarkMode) {
-    drawDarkModeBackground(ctx, width, height, state, theme);
-    return;
-  }
+  const wash = ctx.createLinearGradient(0, 0, 0, height);
+  wash.addColorStop(0, theme.skyTop + "22");
+  wash.addColorStop(1, theme.skyBottom + "33");
+  ctx.fillStyle = wash;
+  ctx.fillRect(0, 0, width, height);
 
-  // Cartoon particles / decorations per theme
-  drawThemeParticles(ctx, width, height, state, theme);
+  drawHistoryClips(ctx, width, height, state, year, theme.accent);
 
-  // Subtle year watermark
   ctx.save();
-  ctx.globalAlpha = 0.06;
+  ctx.globalAlpha = 0.08;
   ctx.fillStyle = theme.accent;
-  ctx.font = `bold ${Math.min(width, height) * 0.22}px system-ui, sans-serif`;
+  ctx.font = `900 ${Math.min(width, height) * 0.26}px "Comic Sans MS", "Chalkboard SE", system-ui`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
   ctx.fillText(String(year), width / 2, height / 2);
   ctx.restore();
 }
 
-/** Post-2026: pure black cyberpunk minimal */
-function drawDarkModeBackground(
+function drawHistoryClips(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
   state: GameState,
-  theme: YearTheme
-) {
-  // Pure black
-  ctx.fillStyle = "#000000";
-  ctx.fillRect(0, 0, width, height);
-
-  // Subtle orange circuit lines
-  ctx.save();
-  ctx.globalAlpha = 0.12;
-  ctx.strokeStyle = theme.accent;
-  ctx.lineWidth = 1;
-
-  const offset = (state.distance * 0.3) % 80;
-  for (let i = -1; i < width / 60 + 2; i++) {
-    const x = i * 60 - offset;
-    ctx.beginPath();
-    ctx.moveTo(x, 0);
-    ctx.lineTo(x + 30, height * 0.3);
-    ctx.lineTo(x, height * 0.6);
-    ctx.lineTo(x + 40, height);
-    ctx.stroke();
-  }
-
-  // Floating sats particles
-  ctx.globalAlpha = 0.25;
-  ctx.fillStyle = theme.accent;
-  for (let i = 0; i < 18; i++) {
-    const sx = ((i * 137 + state.distance * 0.4) % (width + 40)) - 20;
-    const sy = (i * 89 + state.frame * 0.3) % height;
-    const size = 1.5 + (i % 3);
-    ctx.beginPath();
-    ctx.arc(sx, sy, size, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.restore();
-
-  // Big glowing text
-  drawStayHumbleText(ctx, width, height, state);
-}
-
-/** Glitchy terminal-style overlay text */
-function drawStayHumbleText(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  state: GameState
-) {
-  const text = "STAY HUMBLE, STACK SATS";
-  const fontSize = Math.min(28, width * 0.055);
-  ctx.save();
-
-  ctx.font = `bold ${fontSize}px ui-monospace, "SF Mono", Menlo, monospace`;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  const y = height * 0.18;
-  const time = state.frame;
-
-  // Subtle glitch: occasional RGB split
-  const glitch = Math.sin(time * 0.08) > 0.92;
-  if (glitch) {
-    ctx.globalAlpha = 0.5;
-    ctx.fillStyle = "#ff0040";
-    ctx.fillText(text, width / 2 - 2, y);
-    ctx.fillStyle = "#00f0ff";
-    ctx.fillText(text, width / 2 + 2, y);
-  }
-
-  // Main orange glow
-  ctx.globalAlpha = 1;
-  ctx.shadowColor = "rgba(247, 147, 26, 0.7)";
-  ctx.shadowBlur = 18;
-  ctx.fillStyle = "#F7931A";
-  ctx.fillText(text, width / 2, y);
-
-  // Soft second pass
-  ctx.shadowBlur = 0;
-  ctx.globalAlpha = 0.35;
-  ctx.fillText(text, width / 2, y);
-
-  ctx.restore();
-}
-
-/** Simple cartoon particles depending on theme */
-function drawThemeParticles(
-  ctx: CanvasRenderingContext2D,
-  width: number,
-  height: number,
-  state: GameState,
-  theme: YearTheme
+  year: number,
+  accent: string
 ) {
   ctx.save();
-  const offset = state.distance * 0.25;
-
-  if (theme.particles === "stars" || theme.particles === "none") {
-    ctx.globalAlpha = 0.2;
-    ctx.fillStyle = "#ffffff";
-    for (let i = 0; i < 35; i++) {
-      const sx = ((i * 97 + offset * 0.3) % (width + 30)) - 15;
-      const sy = (i * 53) % height;
-      ctx.beginPath();
-      ctx.arc(sx, sy, 0.8 + (i % 3) * 0.4, 0, Math.PI * 2);
-      ctx.fill();
-    }
-  }
-
-  if (theme.particles === "sats") {
-    ctx.globalAlpha = 0.22;
-    ctx.fillStyle = theme.accent;
-    for (let i = 0; i < 22; i++) {
-      const sx = ((i * 113 + offset) % (width + 40)) - 20;
-      const sy = (i * 67 + state.frame * 0.2) % height;
-      ctx.font = `${8 + (i % 4)}px system-ui`;
-      ctx.fillText("₿", sx, sy);
-    }
-  }
-
-  if (theme.particles === "blocks") {
-    ctx.globalAlpha = 0.12;
-    ctx.strokeStyle = theme.accent;
-    ctx.lineWidth = 1.5;
-    for (let i = 0; i < 12; i++) {
-      const sx = ((i * 140 + offset * 0.6) % (width + 60)) - 30;
-      const sy = 40 + (i * 70) % (height - 80);
-      ctx.strokeRect(sx, sy, 28, 18);
-    }
-  }
-
-  if (theme.particles === "pizza") {
-    ctx.globalAlpha = 0.3;
-    for (let i = 0; i < 8; i++) {
-      const sx = ((i * 160 + offset * 0.5) % (width + 50)) - 25;
-      const sy = 50 + (i * 90) % (height - 100);
-      ctx.font = "16px serif";
-      ctx.fillText("🍕", sx, sy);
-    }
-  }
-
-  if (theme.particles === "crash") {
-    ctx.globalAlpha = 0.18;
-    ctx.fillStyle = "#ef4444";
-    for (let i = 0; i < 20; i++) {
-      const sx = ((i * 89 + offset * 1.2) % (width + 30)) - 15;
-      const sy = (i * 71) % height;
-      ctx.fillRect(sx, sy, 3, 3);
-    }
-  }
-
-  ctx.restore();
-}
-
-/** Draw a single realistic candlestick */
-export function drawCandlestick(ctx: CanvasRenderingContext2D, c: Candlestick) {
-  const bodyW = c.width * c.bodyWidthRatio;
-  const bodyLeft = c.x - bodyW / 2;
-  const wickW = 3.5;
-  const colorBody = c.isGreen ? GAME.COLORS.greenBody : GAME.COLORS.redBody;
-  const colorWick = c.isGreen ? GAME.COLORS.greenWick : GAME.COLORS.redWick;
-
-  ctx.strokeStyle = colorWick;
-  ctx.lineWidth = wickW;
+  ctx.globalAlpha = 0.22;
+  ctx.strokeStyle = accent;
+  ctx.fillStyle = accent;
+  ctx.lineWidth = 3;
   ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  const drift = (state.distance * 0.2) % (width + 80);
+
+  if (year <= 2009) {
+    for (let i = 0; i < 5; i++) {
+      const x = ((i * 180 - drift) % (width + 100)) - 40;
+      const y = 50 + (i % 3) * 90;
+      ctx.strokeRect(x, y, 70, 44);
+      ctx.font = "10px Comic Sans MS, system-ui";
+      ctx.fillText("TIMES", x + 8, y + 26);
+    }
+  } else if (year === 2010) {
+    ctx.font = "22px Comic Sans MS, serif";
+    for (let i = 0; i < 6; i++) {
+      const x = ((i * 170 - drift) % (width + 60)) - 20;
+      ctx.fillText("pizza", x, 70 + (i % 4) * 80);
+    }
+  } else if (year >= 2014 && year <= 2015) {
+    ctx.strokeStyle = "#c92a2a";
+    for (let i = 0; i < 10; i++) {
+      const x = ((i * 90 - drift) % (width + 40)) - 10;
+      ctx.beginPath();
+      ctx.moveTo(x, 40);
+      ctx.lineTo(x + 20, height - 40);
+      ctx.stroke();
+    }
+  } else if (year === 2019 || year >= 2027) {
+    for (let i = 0; i < 8; i++) {
+      const x = ((i * 130 - drift) % (width + 50)) - 20;
+      ctx.beginPath();
+      ctx.arc(x, 80 + (i % 3) * 70, 16, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+  } else {
+    for (let i = 0; i < 10; i++) {
+      const x = ((i * 120 - drift) % (width + 40)) - 16;
+      const y = 36 + (i % 5) * 70;
+      ctx.strokeRect(x, y, 26, 16);
+    }
+  }
+  ctx.restore();
+
+  if (year >= 2027) {
+    ctx.save();
+    ctx.globalAlpha = 0.55;
+    ctx.fillStyle = "#F7931A";
+    ctx.font = `bold ${Math.min(22, width * 0.045)}px "Comic Sans MS", system-ui`;
+    ctx.textAlign = "center";
+    ctx.fillText("STAY HUMBLE, STACK SATS", width / 2, height * 0.16);
+    ctx.restore();
+  }
+}
+
+export function drawCandlestick(ctx: CanvasRenderingContext2D, c: Candlestick) {
+  const bodyW = Math.max(22, c.width * c.bodyWidthRatio);
+  const bodyLeft = c.x - bodyW / 2;
+  const fill = c.isGreen ? GREEN_FILL : RED_FILL;
+  const ink = c.isGreen ? GREEN_INK : RED_INK;
+  const j = wobble(c.id * 1.7, 1.2);
+
+  ctx.save();
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  ctx.strokeStyle = ink;
+  ctx.lineWidth = 5;
   ctx.beginPath();
-  ctx.moveTo(c.x, c.topWickTop);
-  ctx.lineTo(c.x, c.topBodyTop);
-  ctx.moveTo(c.x, c.bottomBodyBottom);
-  ctx.lineTo(c.x, c.bottomWickBottom);
+  ctx.moveTo(c.x + j, c.topWickTop);
+  ctx.lineTo(c.x - j * 0.4, c.topBodyTop);
+  ctx.moveTo(c.x - j, c.bottomBodyBottom);
+  ctx.lineTo(c.x + j * 0.3, c.bottomWickBottom);
   ctx.stroke();
 
   const topH = c.topBodyBottom - c.topBodyTop;
   if (topH > 2) {
-    const g = ctx.createLinearGradient(bodyLeft, 0, bodyLeft + bodyW, 0);
-    if (c.isGreen) {
-      g.addColorStop(0, "#1e8a7e");
-      g.addColorStop(0.4, colorBody);
-      g.addColorStop(1, "#2bbbad");
-    } else {
-      g.addColorStop(0, "#c62828");
-      g.addColorStop(0.4, colorBody);
-      g.addColorStop(1, "#ff6f60");
-    }
-    ctx.fillStyle = g;
-    roundRect(ctx, bodyLeft, c.topBodyTop, bodyW, topH, 3);
-    ctx.fill();
+    ctx.fillStyle = fill;
+    ctx.fillRect(bodyLeft + j, c.topBodyTop, bodyW, topH);
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(bodyLeft + j, c.topBodyTop, bodyW, topH);
   }
 
   const botH = c.bottomBodyBottom - c.bottomBodyTop;
   if (botH > 2) {
-    const g2 = ctx.createLinearGradient(bodyLeft, 0, bodyLeft + bodyW, 0);
-    if (c.isGreen) {
-      g2.addColorStop(0, "#1e8a7e");
-      g2.addColorStop(0.4, colorBody);
-      g2.addColorStop(1, "#2bbbad");
-    } else {
-      g2.addColorStop(0, "#c62828");
-      g2.addColorStop(0.4, colorBody);
-      g2.addColorStop(1, "#ff6f60");
-    }
-    ctx.fillStyle = g2;
-    roundRect(ctx, bodyLeft, c.bottomBodyTop, bodyW, botH, 3);
-    ctx.fill();
+    ctx.fillStyle = fill;
+    ctx.fillRect(bodyLeft - j, c.bottomBodyTop, bodyW, botH);
+    ctx.strokeStyle = ink;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(bodyLeft - j, c.bottomBodyTop, bodyW, botH);
   }
+  ctx.restore();
 }
 
-function roundRect(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  r: number
-) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-/** Draw the Bitcoin coin (bird) */
 export function drawBird(ctx: CanvasRenderingContext2D, bird: Bird) {
   ctx.save();
   ctx.translate(bird.x, bird.y);
   ctx.rotate(bird.rotation);
-
-  ctx.shadowColor = "rgba(247, 147, 26, 0.55)";
-  ctx.shadowBlur = 18;
-
-  const grad = ctx.createRadialGradient(-4, -4, 2, 0, 0, bird.radius);
-  grad.addColorStop(0, GAME.COLORS.birdHighlight);
-  grad.addColorStop(0.7, GAME.COLORS.birdOrange);
-  grad.addColorStop(1, "#c46b00");
-  ctx.fillStyle = grad;
+  ctx.lineWidth = 4;
+  ctx.strokeStyle = INK;
+  ctx.fillStyle = "#F7931A";
   ctx.beginPath();
   ctx.arc(0, 0, bird.radius, 0, Math.PI * 2);
   ctx.fill();
-
-  ctx.shadowBlur = 0;
-  ctx.strokeStyle = "rgba(255,255,255,0.25)";
-  ctx.lineWidth = 1.5;
-  ctx.beginPath();
-  ctx.arc(0, 0, bird.radius * 0.72, 0, Math.PI * 2);
   ctx.stroke();
-
-  ctx.fillStyle = "#1a1a1a";
-  ctx.font = `bold ${bird.radius * 1.1}px system-ui, sans-serif`;
+  ctx.fillStyle = "#ffe08a";
+  ctx.beginPath();
+  ctx.ellipse(-5, -6, 5, 3.2, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = INK;
+  ctx.font = `bold ${bird.radius * 1.15}px "Comic Sans MS", system-ui`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("₿", 0, 1);
-
-  ctx.fillStyle = "rgba(255,255,255,0.35)";
-  ctx.beginPath();
-  ctx.ellipse(-5, -6, 5, 3.5, -0.4, 0, Math.PI * 2);
-  ctx.fill();
-
+  ctx.fillText("B", 0, 1);
   ctx.restore();
 }
 
-/** Draw score + year HUD */
 export function drawHUD(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -318,44 +180,36 @@ export function drawHUD(
 ) {
   const year = getYearFromScore(state.score);
   const theme = getYearTheme(year);
+  const font = `"Comic Sans MS", "Chalkboard SE", system-ui`;
 
   ctx.save();
-
-  // Score
-  ctx.font = "bold 42px system-ui, sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
-  ctx.fillStyle = "rgba(0,0,0,0.4)";
-  ctx.fillText(String(state.score), width / 2 + 2, 22);
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText(String(state.score), width / 2, 20);
+  ctx.font = `bold ${Math.max(28, Math.min(42, width * 0.07))}px ${font}`;
+  ctx.fillStyle = "rgba(0,0,0,0.18)";
+  ctx.fillText(String(state.score), width / 2 + 2, 18);
+  ctx.fillStyle = INK;
+  ctx.fillText(String(state.score), width / 2, 16);
 
-  // PIPS label
-  ctx.font = "11px system-ui, sans-serif";
-  ctx.fillStyle = "rgba(255,255,255,0.5)";
-  ctx.fillText("PIPS", width / 2, 64);
+  ctx.font = `12px ${font}`;
+  ctx.fillStyle = "#555";
+  ctx.fillText("PIPS", width / 2, Math.max(52, width * 0.09));
 
-  // Year badge
-  ctx.font = "bold 13px ui-monospace, monospace";
+  ctx.font = `bold ${Math.max(11, Math.min(14, width * 0.028))}px ${font}`;
   ctx.fillStyle = theme.accent;
-  ctx.globalAlpha = 0.95;
-  ctx.fillText(theme.label, width / 2, 82);
+  ctx.fillText(theme.label, width / 2, Math.max(70, width * 0.12));
 
-  // Ready message
   if (state.isReady && !state.isGameOver) {
-    ctx.globalAlpha = 1;
-    ctx.font = "bold 18px system-ui, sans-serif";
-    ctx.fillStyle = "rgba(255,255,255,0.9)";
+    ctx.fillStyle = INK;
+    ctx.font = `bold ${Math.max(16, Math.min(20, width * 0.038))}px ${font}`;
     ctx.fillText("TAP / SPACE to flap", width / 2, height * 0.62);
-    ctx.font = "13px system-ui, sans-serif";
-    ctx.fillStyle = "rgba(247,147,26,0.85)";
+    ctx.font = `${Math.max(12, Math.min(15, width * 0.028))}px ${font}`;
+    ctx.fillStyle = "#c46b00";
     ctx.fillText("Fly through Bitcoin history", width / 2, height * 0.62 + 26);
   }
-
   ctx.restore();
 }
 
-/** Full frame render */
 export function renderFrame(
   ctx: CanvasRenderingContext2D,
   state: GameState,
@@ -363,11 +217,7 @@ export function renderFrame(
   height: number
 ) {
   drawBackground(ctx, width, height, state);
-
-  for (const c of state.candlesticks) {
-    drawCandlestick(ctx, c);
-  }
-
+  for (const c of state.candlesticks) drawCandlestick(ctx, c);
   drawBird(ctx, state.bird);
   drawHUD(ctx, state, width, height);
 }

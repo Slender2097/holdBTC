@@ -5,16 +5,29 @@ import {
   createInitialState,
   flap,
   updateGame,
+  RANKED_DT,
+  RANKED_TICK_MS,
 } from "@/lib/game/engine";
+import { mulberry32, type Rng } from "@/lib/game/rng";
 import { renderFrame } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
 
+export type RunLog = {
+  score: number;
+  distance: number;
+  flaps: number[];
+  frames: number;
+  width: number;
+  height: number;
+};
+
 interface GameCanvasProps {
-  onGameOver: (score: number, distance: number) => void;
+  onGameOver: (score: number, distance: number, log?: RunLog) => void;
   onScoreChange?: (score: number) => void;
   highScore?: number;
-  enabled?: boolean; // kept for compatibility; game is free to play
+  enabled?: boolean;
   className?: string;
+  rankedSeed?: number | null;
 }
 
 export default function GameCanvas({
@@ -23,15 +36,20 @@ export default function GameCanvas({
   highScore = 0,
   enabled = true,
   className = "",
+  rankedSeed = null,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<GameState | null>(null);
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
+  const accRef = useRef(0);
+  const rngRef = useRef<Rng | null>(null);
+  const flapsRef = useRef<number[]>([]);
+  const playSizeRef = useRef({ w: 0, h: 0 });
   const [ready, setReady] = useState(false);
   const gameOverSent = useRef(false);
+  const ranked = rankedSeed != null;
 
-  // Resize handling
   const resize = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -48,22 +66,21 @@ export default function GameCanvas({
     canvas.style.height = `${h}px`;
 
     const ctx = canvas.getContext("2d");
-    if (ctx) {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    }
+    if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     if (!stateRef.current) {
-      stateRef.current = createInitialState(w, h, highScore);
+      rngRef.current = ranked ? mulberry32(rankedSeed >>> 0) : null;
+      flapsRef.current = [];
+      playSizeRef.current = { w, h };
+      stateRef.current = createInitialState(w, h, highScore, rngRef.current || undefined);
       setReady(true);
-    } else {
+    } else if (!ranked) {
       stateRef.current.bird.x = w * 0.22;
     }
-  }, [highScore]);
+  }, [highScore, ranked, rankedSeed]);
 
-  // Main loop
   useEffect(() => {
     if (!enabled || !ready) return;
-
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -71,43 +88,62 @@ export default function GameCanvas({
 
     const loop = (time: number) => {
       if (!stateRef.current) return;
+      const viewW = canvas.clientWidth;
+      const viewH = canvas.clientHeight;
 
-      const rawDt = lastTimeRef.current ? (time - lastTimeRef.current) / 16.666 : 1;
-      const dt = Math.min(Math.max(rawDt, 0.5), 2.5);
-      lastTimeRef.current = time;
-
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-
-      const prev = stateRef.current;
-      const next = updateGame(prev, dt, w, h);
-      stateRef.current = next;
-
-      if (next.score !== prev.score && onScoreChange) {
-        onScoreChange(next.score);
-      }
-
-      renderFrame(ctx, next, w, h);
-
-      if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
-        gameOverSent.current = true;
-        onGameOver(next.score, next.distance);
+      if (ranked) {
+        const raw = lastTimeRef.current ? time - lastTimeRef.current : RANKED_TICK_MS;
+        lastTimeRef.current = time;
+        accRef.current += Math.min(raw, RANKED_TICK_MS * 5);
+        let steps = 0;
+        while (accRef.current >= RANKED_TICK_MS && steps < 5 && !stateRef.current.isGameOver) {
+          accRef.current -= RANKED_TICK_MS;
+          steps += 1;
+          const prev = stateRef.current;
+          const pw = playSizeRef.current.w || viewW;
+          const ph = playSizeRef.current.h || viewH;
+          const next = updateGame(prev, RANKED_DT, pw, ph, rngRef.current || Math.random);
+          stateRef.current = next;
+          if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
+          if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
+            gameOverSent.current = true;
+            onGameOver(next.score, next.distance, {
+              score: next.score,
+              distance: next.distance,
+              flaps: flapsRef.current.slice(),
+              frames: next.frame,
+              width: pw,
+              height: ph,
+            });
+          }
+        }
+        renderFrame(ctx, stateRef.current, viewW, viewH);
+      } else {
+        const rawDt = lastTimeRef.current ? (time - lastTimeRef.current) / 16.666 : 1;
+        const dt = Math.min(Math.max(rawDt, 0.5), 2.5);
+        lastTimeRef.current = time;
+        const prev = stateRef.current;
+        const next = updateGame(prev, dt, viewW, viewH, Math.random);
+        stateRef.current = next;
+        if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
+        renderFrame(ctx, next, viewW, viewH);
+        if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
+          gameOverSent.current = true;
+          onGameOver(next.score, next.distance);
+        }
       }
 
       rafRef.current = requestAnimationFrame(loop);
     };
 
     rafRef.current = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [enabled, ready, onGameOver, onScoreChange, ranked]);
 
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, [enabled, ready, onGameOver, onScoreChange]);
-
-  // Input handlers
   const doFlap = useCallback(() => {
     if (!enabled || !stateRef.current) return;
     if (stateRef.current.isGameOver) return;
+    flapsRef.current.push(stateRef.current.frame);
     stateRef.current = flap(stateRef.current);
   }, [enabled]);
 
@@ -122,36 +158,16 @@ export default function GameCanvas({
     return () => window.removeEventListener("keydown", onKey);
   }, [doFlap]);
 
-  // Resize observer
   useEffect(() => {
     resize();
     const ro = new ResizeObserver(() => resize());
-    if (canvasRef.current?.parentElement) {
-      ro.observe(canvasRef.current.parentElement);
-    }
+    if (canvasRef.current?.parentElement) ro.observe(canvasRef.current.parentElement);
     window.addEventListener("resize", resize);
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", resize);
     };
   }, [resize]);
-
-  const restart = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    stateRef.current = createInitialState(w, h, highScore);
-    gameOverSent.current = false;
-    lastTimeRef.current = 0;
-  }, [highScore]);
-
-  useEffect(() => {
-    (window as any).__candlebirdRestart = restart;
-    return () => {
-      delete (window as any).__candlebirdRestart;
-    };
-  }, [restart]);
 
   return (
     <div className={`relative w-full h-full min-h-[320px] ${className}`}>
@@ -164,7 +180,6 @@ export default function GameCanvas({
           doFlap();
         }}
       />
-      {/* Game is free — no paywall overlay */}
     </div>
   );
 }

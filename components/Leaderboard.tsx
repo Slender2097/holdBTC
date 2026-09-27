@@ -9,6 +9,7 @@ interface ScoreEntry {
   npub: string;
   score: number;
   distance: number;
+  year?: number;
   created_at: number;
   eventId: string;
   profile?: {
@@ -22,14 +23,25 @@ interface ScoreEntry {
 interface LeaderboardProps {
   refreshKey?: number;
   currentUserPubkey?: string | null;
+  currentUserName?: string | null;
+  currentUserPicture?: string | null;
   personalBest?: number;
+}
+
+type Tab = "global" | "following";
+
+function yearFromScore(score: number): number {
+  return 2008 + Math.floor(Math.max(0, score) / 1000);
 }
 
 export default function Leaderboard({
   refreshKey = 0,
   currentUserPubkey,
+  currentUserName,
+  currentUserPicture,
   personalBest,
 }: LeaderboardProps) {
+  const [tab, setTab] = useState<Tab>("global");
   const [entries, setEntries] = useState<ScoreEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -39,10 +51,26 @@ export default function Leaderboard({
     setLoading(true);
     setError(null);
 
-    fetch("/api/leaderboard", { cache: "no-store" })
+    if (tab === "following" && !currentUserPubkey) {
+      setEntries([]);
+      setError("Login with Nostr to see people you follow");
+      setLoading(false);
+      return;
+    }
+
+    const qs = new URLSearchParams({ tab });
+    if (currentUserPubkey) qs.set("pubkey", currentUserPubkey);
+
+    fetch(`/api/leaderboard?${qs.toString()}`, { cache: "no-store" })
       .then((res) => res.json())
       .then((data) => {
-        if (!cancelled) setEntries(Array.isArray(data.entries) ? data.entries : []);
+        if (cancelled) return;
+        if (data.error && !Array.isArray(data.entries)) {
+          setError(data.error);
+          setEntries([]);
+          return;
+        }
+        setEntries(Array.isArray(data.entries) ? data.entries : []);
       })
       .catch(() => {
         if (!cancelled) setError("Signal interrupted");
@@ -54,19 +82,40 @@ export default function Leaderboard({
     return () => {
       cancelled = true;
     };
-  }, [refreshKey]);
+  }, [refreshKey, tab, currentUserPubkey]);
 
   return (
     <div className="alien-panel rounded-xl overflow-hidden">
-      <div className="px-4 py-3 border-b border-alien-border flex items-center justify-between">
-        <h2 className="font-mono text-xs tracking-[0.2em] text-alien-cyan uppercase">
-          Global Rank
-        </h2>
-        {personalBest !== undefined && personalBest > 0 && (
-          <span className="text-[10px] text-alien-muted font-mono">
-            BEST <span className="text-alien-green">{personalBest}</span>
-          </span>
-        )}
+      <div className="px-3 pt-3 border-b border-alien-border">
+        <div className="flex items-center gap-1 mb-2">
+          <button
+            type="button"
+            onClick={() => setTab("global")}
+            className={`px-2.5 py-1 rounded-md text-[10px] font-mono tracking-[0.14em] uppercase ${
+              tab === "global"
+                ? "bg-alien-cyan/15 text-alien-cyan"
+                : "text-alien-muted hover:text-white"
+            }`}
+          >
+            Global Rank
+          </button>
+          <button
+            type="button"
+            onClick={() => setTab("following")}
+            className={`px-2.5 py-1 rounded-md text-[10px] font-mono tracking-[0.14em] uppercase ${
+              tab === "following"
+                ? "bg-alien-cyan/15 text-alien-cyan"
+                : "text-alien-muted hover:text-white"
+            }`}
+          >
+            Following
+          </button>
+          {personalBest !== undefined && personalBest > 0 && (
+            <span className="ml-auto text-[10px] text-alien-muted font-mono">
+              BEST <span className="text-alien-green">{personalBest}</span>
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="max-h-[380px] overflow-y-auto">
@@ -80,19 +129,25 @@ export default function Leaderboard({
         )}
         {!loading && !error && entries.length === 0 && (
           <div className="p-6 text-center text-alien-muted text-xs font-mono">
-            NO SIGNALS YET
+            {tab === "following" ? "NO FOLLOWED PLAYERS YET" : "NO SIGNALS YET"}
           </div>
         )}
 
         <ul className="divide-y divide-alien-border/50">
           {entries.map((e, i) => {
-            const isMe = currentUserPubkey && e.pubkey === currentUserPubkey;
+            const isMe =
+              !!currentUserPubkey &&
+              e.pubkey.toLowerCase() === currentUserPubkey.toLowerCase();
             const name =
+              (isMe && currentUserName) ||
               e.displayName ||
               e.profile?.display_name ||
               e.profile?.name ||
               null;
-            const picture = safeHttpsImageUrl(e.profile?.picture);
+            const picture = safeHttpsImageUrl(
+              (isMe && currentUserPicture) || e.profile?.picture
+            );
+            const year = e.year || yearFromScore(e.score);
 
             return (
               <li
@@ -107,9 +162,7 @@ export default function Leaderboard({
                       ? "text-alien-cyan"
                       : i === 1
                       ? "text-white/70"
-                      : i === 2
-                      ? "text-alien-muted"
-                      : "text-alien-muted/50"
+                      : "text-alien-muted/70"
                   }`}
                 >
                   {i + 1}
@@ -122,9 +175,6 @@ export default function Leaderboard({
                       alt={name || "avatar"}
                       className="w-full h-full object-cover"
                       referrerPolicy="no-referrer"
-                      onError={(ev) => {
-                        (ev.target as HTMLImageElement).style.display = "none";
-                      }}
                     />
                   ) : (
                     <span className="text-[10px] font-bold text-alien-cyan/70">
@@ -142,15 +192,16 @@ export default function Leaderboard({
                       </span>
                     )}
                   </p>
-                  {name && (
-                    <p className="text-[10px] text-alien-muted font-mono truncate mt-0.5">
-                      {shortNpub(e.npub, 8)}
-                    </p>
-                  )}
+                  <p className="text-[10px] text-alien-muted font-mono truncate mt-0.5">
+                    {e.score.toLocaleString()} PIPS / {year}
+                  </p>
                 </div>
 
-                <span className="font-mono font-semibold text-alien-cyan tabular-nums shrink-0 text-sm">
+                <span className="font-mono font-semibold text-alien-cyan tabular-nums shrink-0 text-sm text-right">
                   {e.score.toLocaleString()}
+                  <span className="block text-[9px] text-alien-muted font-normal">
+                    {year}
+                  </span>
                 </span>
               </li>
             );
