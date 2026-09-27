@@ -37,15 +37,21 @@ export async function strikeCreateInvoice(amountSats: number, description: strin
 
   const invoice = await invoiceRes.json();
   const invoiceId: string = invoice.invoiceId;
+  if (!isSafeInvoiceId(invoiceId)) {
+    throw new Error("Strike returned an invalid invoice id");
+  }
 
-  const quoteRes = await fetch(`${STRIKE_API_URL}/v1/invoices/${invoiceId}/quote`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${STRIKE_API_KEY}`,
-      Accept: "application/json",
-      "Content-Length": "0",
-    },
-  });
+  const quoteRes = await fetch(
+    `${STRIKE_API_URL}/v1/invoices/${encodeURIComponent(invoiceId)}/quote`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${STRIKE_API_KEY}`,
+        Accept: "application/json",
+        "Content-Length": "0",
+      },
+    }
+  );
 
   if (!quoteRes.ok) {
     const text = await quoteRes.text();

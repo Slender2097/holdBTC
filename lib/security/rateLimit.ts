@@ -39,12 +39,20 @@ export function rateLimit(key: string, max: number, windowMs: number): {
   return { ok: true, retryAfterSec: Math.ceil((current.resetAt - now) / 1000) };
 }
 
-/** Prefer platform-guaranteed headers. Do not trust client X-Forwarded-For. */
+/** Prefer platform IP. Last X-Forwarded-For hop only after that. */
 export function clientIp(req: Request): string {
   const h = req.headers;
   const vercel = h.get("x-vercel-forwarded-for");
   if (vercel) return vercel.split(",")[0].trim();
+
   const real = h.get("x-real-ip");
   if (real) return real.trim();
+
+  const forwarded = h.get("x-forwarded-for");
+  if (forwarded) {
+    const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
+    if (parts.length) return parts[parts.length - 1];
+  }
+
   return "unknown";
 }

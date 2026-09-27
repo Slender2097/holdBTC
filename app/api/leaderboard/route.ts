@@ -12,6 +12,12 @@ const PROFILE_RELAYS = [
   "wss://nos.lol",
 ];
 
+let profilePool: SimplePool | null = null;
+function getProfilePool(): SimplePool {
+  if (!profilePool) profilePool = new SimplePool();
+  return profilePool;
+}
+
 function toNpub(pubkey: string): string {
   try {
     return nip19.npubEncode(pubkey);
@@ -27,7 +33,7 @@ async function fetchProfiles(pubkeys: string[]) {
   >();
   if (pubkeys.length === 0) return result;
 
-  const pool = new SimplePool();
+  const pool = getProfilePool();
   const filter: Filter = { kinds: [0], authors: pubkeys };
   try {
     const events = await Promise.race([

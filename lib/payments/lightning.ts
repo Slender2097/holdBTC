@@ -27,7 +27,7 @@ export async function createInvoice(pubkey?: string, authEvent?: unknown): Promi
       return { success: false, method: "none", error: data.error || "Failed to create invoice" };
     }
     return {
-      success: false,
+      success: true,
       method: "strike",
       invoice: {
         payment_hash: data.payment_hash,
