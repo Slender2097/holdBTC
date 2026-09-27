@@ -50,8 +50,8 @@ export default function HomePage() {
     }
     setRankedWarning(null);
     payment.setPubkey(nostr.user.pubkey);
-    await payment.payToPlay(nostr.user.pubkey);
-  }, [payment, nostr.isLoggedIn, nostr.user?.pubkey]);
+    await payment.payToPlay(nostr.user.pubkey, nostr.signEvent);
+  }, [payment, nostr.isLoggedIn, nostr.user?.pubkey, nostr.signEvent]);
 
   const handleGameOver = useCallback(
     (score: number, distance: number) => {

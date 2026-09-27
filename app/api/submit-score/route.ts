@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findScoreByInvoice, publishAttestedScore } from "@/lib/nostr/sitePublish";
-import {
-  MAX_RANKED_SCORE,
-  verifyRankedToken,
-} from "@/lib/security/rankedToken";
+import { tryMarkSubmitted } from "@/lib/security/invoiceStore";
+import { clientIp, rateLimit } from "@/lib/security/rateLimit";
+import { MAX_RANKED_SCORE, verifyRankedToken } from "@/lib/security/rankedToken";
 
 export async function POST(req: NextRequest) {
+  const limit = rateLimit(`submit:${clientIp(req)}`, 10, 60_000);
+  if (!limit.ok) {
+    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+  }
+
   let body: { token?: string; score?: number; distance?: number };
   try {
     body = await req.json();
@@ -24,6 +28,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid score" }, { status: 400 });
   }
 
+  if (!tryMarkSubmitted(payload.invoiceId, payload.pubkey)) {
+    return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
+  }
+
   try {
     const already = await findScoreByInvoice(payload.invoiceId);
     if (already) {
@@ -37,10 +45,7 @@ export async function POST(req: NextRequest) {
       invoiceId: payload.invoiceId,
     });
 
-    return NextResponse.json({
-      ok: true,
-      eventId: event.id,
-    });
+    return NextResponse.json({ ok: true, eventId: event.id });
   } catch (err) {
     console.error("submit-score failed:", err);
     return NextResponse.json({ error: "Could not publish attested score" }, { status: 502 });

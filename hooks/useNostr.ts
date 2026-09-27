@@ -10,7 +10,7 @@ import {
   type NostrProfile,
 } from "@/lib/nostr/client";
 import { parseNsec, toNpub } from "@/lib/nostr/utils";
-import { getPublicKey } from "nostr-tools";
+import { finalizeEvent, getPublicKey, type Event, type EventTemplate } from "nostr-tools";
 
 export type AuthMode = "none" | "nip07" | "nsec" | "ephemeral";
 
@@ -199,6 +199,25 @@ export function useNostr() {
     clearUserStorage();
   }, []);
 
+  const signEvent = useCallback(
+    async (template: EventTemplate): Promise<Event> => {
+      if (skRef.current) {
+        return finalizeEvent(template, skRef.current);
+      }
+
+      if (user?.mode === "nsec" || user?.mode === "ephemeral") {
+        throw new Error("Paste your nsec again to pay. It is not kept after reload.");
+      }
+
+      const nostr = typeof window !== "undefined" ? (window as any).nostr : null;
+      if (nostr?.signEvent) {
+        return nostr.signEvent(template);
+      }
+      throw new Error("Use a Nostr extension, or login again with nsec.");
+    },
+    [user?.mode]
+  );
+
   const publishScore = useCallback(
     async (score: number, distance: number) => {
       if (!user) return null;
@@ -239,6 +258,7 @@ export function useNostr() {
     loginWithNsec,
     loginEphemeral,
     logout,
+    signEvent,
     publishScore,
     publishNote,
     isLoggedIn: !!user,

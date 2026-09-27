@@ -1,3 +1,4 @@
+import "server-only";
 import {
   SimplePool,
   finalizeEvent,
@@ -7,6 +8,7 @@ import {
   type EventTemplate,
   type Filter,
 } from "nostr-tools";
+import { ENTRY_FEE_SATS } from "@/lib/security/rankedToken";
 
 export const GAME_KIND = 33333;
 export const GAME_TAG = "holdbtc";
@@ -78,7 +80,7 @@ export async function publishAttestedScore(params: {
       ["p", params.playerPubkey.toLowerCase()],
       ["score", String(params.score)],
       ["distance", String(Math.floor(params.distance))],
-      ["paid", "1000"],
+      ["paid", String(ENTRY_FEE_SATS)],
       ["client", "holdbtc"],
     ],
     content: `Hold BTC attested score: ${params.score} pips`,
@@ -86,6 +88,7 @@ export async function publishAttestedScore(params: {
 
   const event = finalizeEvent(template, sk);
   const p = getPool();
+  let acks = 0;
 
   await Promise.all(
     DEFAULT_RELAYS.map(async (url) => {
@@ -97,11 +100,16 @@ export async function publishAttestedScore(params: {
           Promise.any(list.map((x: Promise<unknown>) => x)),
           new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
         ]);
+        acks += 1;
       } catch (err) {
         console.warn("Relay publish failed:", url, err);
       }
     })
   );
+
+  if (acks === 0) {
+    throw new Error("No relay accepted the attested score");
+  }
 
   return event;
 }
@@ -130,6 +138,13 @@ export async function fetchAttestedScores(limit = 50): Promise<
     new Promise<Event[]>((resolve) => setTimeout(() => resolve([]), 8000)),
   ]);
 
+  const latestByInvoice = new Map<string, Event>();
+  for (const ev of events) {
+    const invoiceId = ev.tags.find((t) => t[0] === "d")?.[1] || ev.id;
+    const prev = latestByInvoice.get(invoiceId);
+    if (!prev || ev.created_at > prev.created_at) latestByInvoice.set(invoiceId, ev);
+  }
+
   const best = new Map<
     string,
     {
@@ -142,7 +157,7 @@ export async function fetchAttestedScores(limit = 50): Promise<
     }
   >();
 
-  for (const ev of events) {
+  for (const ev of latestByInvoice.values()) {
     const player = ev.tags.find((t) => t[0] === "p")?.[1];
     const score = parseInt(ev.tags.find((t) => t[0] === "score")?.[1] || "", 10);
     const distance = parseInt(ev.tags.find((t) => t[0] === "distance")?.[1] || String(score), 10);

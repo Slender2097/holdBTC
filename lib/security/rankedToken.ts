@@ -2,8 +2,8 @@ import { createHmac, randomBytes, timingSafeEqual } from "crypto";
 
 const SECRET = () => {
   const s = process.env.RANKED_TOKEN_SECRET;
-  if (!s || s.length < 16) {
-    throw new Error("RANKED_TOKEN_SECRET is missing or too short");
+  if (!s || s.length < 32) {
+    throw new Error("RANKED_TOKEN_SECRET is missing or shorter than 32 characters");
   }
   return s;
 };
@@ -24,13 +24,13 @@ function safeEq(a: string, b: string): boolean {
   return timingSafeEqual(ba, bb);
 }
 
-export function makeClaimSecret(invoiceId: string): string {
-  return hmac(`claim:${invoiceId}`);
+export function makeClaimSecret(invoiceId: string, pubkey: string): string {
+  return hmac(`claim:${invoiceId}:${pubkey.toLowerCase()}`);
 }
 
-export function verifyClaimSecret(invoiceId: string, secret: string): boolean {
-  if (!invoiceId || !secret) return false;
-  return safeEq(secret, makeClaimSecret(invoiceId));
+export function verifyClaimSecret(invoiceId: string, pubkey: string, secret: string): boolean {
+  if (!invoiceId || !pubkey || !secret) return false;
+  return safeEq(secret, makeClaimSecret(invoiceId, pubkey.toLowerCase()));
 }
 
 export interface RankedPayload {
@@ -54,9 +54,12 @@ export function issueRankedToken(pubkey: string, invoiceId: string, ttlSec = 2 *
 }
 
 export function verifyRankedToken(token: string): RankedPayload | null {
-  if (!token || !token.includes(".")) return null;
-  const [body, sig] = token.split(".");
-  if (!body || !sig) return null;
+  if (!token || typeof token !== "string" || token.length > 2048) return null;
+  const dot = token.indexOf(".");
+  if (dot <= 0) return null;
+  const body = token.slice(0, dot);
+  const sig = token.slice(dot + 1);
+  if (!body || !sig || sig.includes(".")) return null;
   if (!safeEq(sig, hmac(`token:${body}`))) return null;
 
   try {
@@ -72,6 +75,10 @@ export function verifyRankedToken(token: string): RankedPayload | null {
 
 export function isHexPubkey(pk: string): boolean {
   return /^[0-9a-f]{64}$/i.test(pk);
+}
+
+export function isSafeInvoiceId(id: string): boolean {
+  return /^[A-Za-z0-9_-]{8,128}$/.test(id);
 }
 
 export const MAX_RANKED_SCORE = 5_000_000;

@@ -1,3 +1,5 @@
+import { isSafeInvoiceId } from "@/lib/security/rankedToken";
+
 const STRIKE_API_URL = (process.env.STRIKE_API_URL || "https://api.strike.me").replace(/\/$/, "");
 const STRIKE_API_KEY = process.env.STRIKE_API_KEY;
 
@@ -68,7 +70,11 @@ export async function strikeGetInvoice(invoiceId: string): Promise<{
 }> {
   if (!STRIKE_API_KEY) throw new Error("Strike is not configured");
 
-  const res = await fetch(`${STRIKE_API_URL}/v1/invoices/${invoiceId}`, {
+  if (!isSafeInvoiceId(invoiceId)) {
+    return { paid: false, state: "INVALID_ID", amountSats: null };
+  }
+
+  const res = await fetch(`${STRIKE_API_URL}/v1/invoices/${encodeURIComponent(invoiceId)}`, {
     headers: {
       Authorization: `Bearer ${STRIKE_API_KEY}`,
       Accept: "application/json",

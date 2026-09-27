@@ -1,7 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { fetchAttestedScores } from "@/lib/nostr/sitePublish";
 import { nip19 } from "nostr-tools";
 import { SimplePool, type Event, type Filter } from "nostr-tools";
+import { safeHttpsImageUrl } from "@/lib/security/safeUrl";
+import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 
 const PROFILE_RELAYS = [
   "wss://purplepag.es",
@@ -45,7 +47,7 @@ async function fetchProfiles(pubkeys: string[]) {
         result.set(pk.toLowerCase(), {
           name: meta.name || undefined,
           display_name: meta.display_name || undefined,
-          picture: meta.picture || undefined,
+          picture: safeHttpsImageUrl(meta.picture) || undefined,
         });
       } catch {
         /* ignore */
@@ -58,7 +60,20 @@ async function fetchProfiles(pubkeys: string[]) {
   return result;
 }
 
-export async function GET() {
+let cached:
+  | { at: number; entries: unknown[] }
+  | null = null;
+
+export async function GET(req: NextRequest) {
+  const limit = rateLimit(`board:${clientIp(req)}`, 30, 60_000);
+  if (!limit.ok) {
+    return NextResponse.json({ entries: [], error: "Slow down" }, { status: 429 });
+  }
+
+  if (cached && Date.now() - cached.at < 45_000) {
+    return NextResponse.json({ entries: cached.entries });
+  }
+
   try {
     const scores = await fetchAttestedScores(50);
     const profiles = await fetchProfiles(scores.map((s) => s.pubkey));
@@ -77,6 +92,7 @@ export async function GET() {
       };
     });
 
+    cached = { at: Date.now(), entries };
     return NextResponse.json({ entries });
   } catch (err) {
     console.error("leaderboard failed:", err);

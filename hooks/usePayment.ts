@@ -8,6 +8,7 @@ import {
   createInvoice,
   type InvoiceData,
 } from "@/lib/payments/lightning";
+import { signRankedAuth, type AuthSigner } from "@/lib/nostr/browserAuth";
 
 export function usePayment() {
   const [hasPaid, setHasPaid] = useState(false);
@@ -20,6 +21,7 @@ export function usePayment() {
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pubkeyRef = useRef<string | null>(null);
+  const signerRef = useRef<AuthSigner | undefined>(undefined);
 
   const stopPoll = useCallback(() => {
     if (pollRef.current) {
@@ -47,10 +49,23 @@ export function usePayment() {
       setError("Missing claim secret. Create a new invoice.");
       return false;
     }
+    let authEvent;
+    try {
+      authEvent = await signRankedAuth({
+        pubkey,
+        scope: "credit",
+        invoiceId,
+        signEvent: signerRef.current,
+      });
+    } catch (err: any) {
+      setError(err?.message || "Sign the Nostr challenge to claim ranked credit.");
+      return false;
+    }
     const result = await claimRankedCredit({
       invoiceId,
       pubkey,
       claimSecret: inv.claimSecret,
+      authEvent,
     });
     if ("error" in result) {
       setError(result.error);
@@ -64,13 +79,33 @@ export function usePayment() {
     return true;
   }, []);
 
-  const payToPlay = useCallback(async (pubkey?: string) => {
+  const payToPlay = useCallback(async (pubkey?: string, signEvent?: AuthSigner) => {
     if (hasPaid) return { success: true };
     if (pubkey) pubkeyRef.current = pubkey;
+    if (signEvent) signerRef.current = signEvent;
+    const pk = pubkeyRef.current;
+    if (!pk) {
+      setError("Login to Nostr before paying.");
+      return { success: false, method: "none" as const, error: "Not logged in" };
+    }
 
     setError(null);
     setPaying(true);
-    const created = await createInvoice(pubkeyRef.current || pubkey);
+
+    let authEvent;
+    try {
+      authEvent = await signRankedAuth({
+        pubkey: pk,
+        scope: "invoice",
+        signEvent: signerRef.current,
+      });
+    } catch (err: any) {
+      setPaying(false);
+      setError(err?.message || "Use a Nostr extension to pay for ranked entry.");
+      return { success: false, method: "none" as const, error: err?.message };
+    }
+
+    const created = await createInvoice(pk, authEvent);
     if (!created.invoice) {
       setPaying(false);
       setError(created.error || "Failed to create invoice");
@@ -84,13 +119,13 @@ export function usePayment() {
       const paid = await checkPayment(created.invoice!.payment_hash);
       if (!paid) return;
       stopPoll();
-      const pk = pubkeyRef.current;
-      if (!pk) {
+      const currentPk = pubkeyRef.current;
+      if (!currentPk) {
         setError("Login to Nostr before claiming ranked credit.");
         setPaying(false);
         return;
       }
-      await claim(created.invoice!, pk);
+      await claim(created.invoice!, currentPk);
     }, 2500);
 
     return created;

@@ -15,12 +15,12 @@ export interface PaymentResult {
   invoice?: InvoiceData;
 }
 
-export async function createInvoice(pubkey?: string): Promise<PaymentResult> {
+export async function createInvoice(pubkey?: string, authEvent?: unknown): Promise<PaymentResult> {
   try {
     const res = await fetch("/api/invoice", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ pubkey }),
+      body: JSON.stringify({ pubkey, authEvent }),
     });
     const data = await res.json();
     if (!res.ok) {
@@ -58,6 +58,7 @@ export async function claimRankedCredit(params: {
   invoiceId: string;
   pubkey: string;
   claimSecret: string;
+  authEvent?: unknown;
 }): Promise<{ token: string } | { error: string }> {
   try {
     const res = await fetch("/api/ranked-credit", {
