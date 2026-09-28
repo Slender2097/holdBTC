@@ -1,72 +1,57 @@
-Hold BTC
+# Hold BTC
 
-A Bitcoin-themed arcade game. Fly a coin through candlestick obstacles.
+Arcade game: fly a Bitcoin through candlestick obstacles.
 
-Play is free. A 1000-sat Lightning payment unlocks one Global Rank run. Identities come from Nostr. Ranked scores are attested by the server after Strike confirms payment.
+- Play is free.
+- 1000 sats on Lightning unlocks one ranked run.
+- Ranked scores are replayed on the server, then published with a site Nostr key.
+- Players log in with their own Nostr account.
+- Site: [holdbtc.io](https://holdbtc.io)
 
-Live intent: holdbtc.io
+## Stack
 
-Stack
+Next.js 15, TypeScript, Tailwind CSS, Canvas, Strike, Nostr.
 
-Next.js 15 · TypeScript · Tailwind CSS · Canvas · Strike Lightning · Nostr
+## Run
 
-Run locally
-
+```bash
 npm install
-cp .env.local.example .env.local
 npm run dev
+```
 
-Required in .env.local (never commit this file):
+Create `.env.local` (do not commit it):
 
+```
 STRIKE_API_KEY=
 STRIKE_API_URL=https://api.strike.me
 RANKED_TOKEN_SECRET=
 HOLD_BTC_NSEC=
+```
 
-HOLD_BTC_NSEC is a dedicated site key used only to stamp paid scores. Players still log in with their own Nostr account.
+`HOLD_BTC_NSEC` is a dedicated key used only to sign paid scores. It is not a player account.
 
-How ranked mode works
+## Ranked runs
 
+1. Log in with Nostr (extension recommended).
+2. Pay 1000 sats.
+3. Play one run. Flaps are recorded.
+4. The server replays that run and publishes the result.
+5. Global Rank lists only those events.
 
+Free runs stay off the board.
 
+## Layout
 
-
-Player logs in with Nostr (extension recommended).
-
-
-
-Player pays 1000 sats. Strike is checked on the server.
-
-
-
-Server issues a short-lived token bound to that pubkey and invoice.
-
-
-
-On game over, the server publishes one attested score.
-
-
-
-Global Rank lists only those server-signed events.
-
-Free games are not written to the leaderboard.
-
-Layout
-
-app/            pages and API routes
+```
+app/            pages and API
 components/     UI and canvas
 hooks/          Nostr and payment state
-lib/game/       physics and rendering
+lib/game/       physics, replay, render
 lib/nostr/      relays and site publish
 lib/payments/   Strike
-lib/security/   tokens, rate limits, URL checks
+lib/security/   tokens and rate limits
+```
 
-Security review
-
-Public source is meant to be reviewed. Do not request .env values or nsecs.
-
-Start here: app/api/, lib/security/, lib/nostr/sitePublish.ts.
-
-License
+## License
 
 MIT
