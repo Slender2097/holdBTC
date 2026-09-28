@@ -99,6 +99,16 @@ async function fetchFollows(pubkey: string): Promise<Set<string>> {
 
 const cache = new Map<string, { at: number; entries: unknown[] }>();
 
+function readCache(key: string) {
+  const now = Date.now();
+  for (const [k, v] of cache) {
+    if (now - v.at > 5 * 60_000) cache.delete(k);
+  }
+  const hit = cache.get(key);
+  if (hit && now - hit.at < 45_000) return hit.entries;
+  return null;
+}
+
 export async function GET(req: NextRequest) {
   const limit = rateLimit(`board:${clientIp(req)}`, 30, 60_000);
   if (!limit.ok) {
@@ -109,9 +119,9 @@ export async function GET(req: NextRequest) {
   const viewer = String(req.nextUrl.searchParams.get("pubkey") || "").trim().toLowerCase();
   const cacheKey = tab === "following" && isHexPubkey(viewer) ? `f:${viewer}` : "g";
 
-  const hit = cache.get(cacheKey);
-  if (hit && Date.now() - hit.at < 45_000) {
-    return NextResponse.json({ entries: hit.entries, tab });
+  const cachedEntries = readCache(cacheKey);
+  if (cachedEntries) {
+    return NextResponse.json({ entries: cachedEntries, tab });
   }
 
   try {

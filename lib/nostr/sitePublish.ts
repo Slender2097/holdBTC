@@ -4,6 +4,7 @@ import {
   finalizeEvent,
   getPublicKey,
   nip19,
+  verifyEvent,
   type Event,
   type EventTemplate,
   type Filter,
@@ -61,7 +62,7 @@ export async function findScoreByInvoice(invoiceId: string): Promise<Event | nul
     new Promise<Event[]>((resolve) => setTimeout(() => resolve([]), 7000)),
   ]);
 
-  return events[0] || null;
+  return events.find((ev) => ev.pubkey === author && verifyEvent(ev)) || null;
 }
 
 export async function publishAttestedScore(params: {
@@ -140,6 +141,7 @@ export async function fetchAttestedScores(limit = 50): Promise<
 
   const latestByInvoice = new Map<string, Event>();
   for (const ev of events) {
+    if (ev.pubkey !== author || !verifyEvent(ev)) continue;
     const invoiceId = ev.tags.find((t) => t[0] === "d")?.[1] || ev.id;
     const prev = latestByInvoice.get(invoiceId);
     if (!prev || ev.created_at > prev.created_at) latestByInvoice.set(invoiceId, ev);

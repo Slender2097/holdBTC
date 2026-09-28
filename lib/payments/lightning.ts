@@ -75,24 +75,3 @@ export async function claimRankedCredit(params: {
     return { error: err?.message || "Network error claiming credit" };
   }
 }
-
-export async function submitAttestedScore(params: {
-  token: string;
-  score: number;
-  distance: number;
-}): Promise<{ eventId: string } | { error: string }> {
-  try {
-    const res = await fetch("/api/submit-score", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    });
-    const data = await res.json();
-    if (!res.ok || !data.eventId) {
-      return { error: data.error || "Could not submit score" };
-    }
-    return { eventId: data.eventId };
-  } catch (err: any) {
-    return { error: err?.message || "Network error submitting score" };
-  }
-}
