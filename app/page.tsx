@@ -191,7 +191,7 @@ export default function HomePage() {
             </p>
           )}
 
-          <div className="relative rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh] max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:h-[100dvh] max-lg:max-h-none max-lg:w-screen max-lg:rounded-none max-lg:border-0">
+          <div className="relative rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh] max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:max-h-none max-lg:w-screen max-lg:rounded-none max-lg:border-0">
             <div className="h-full w-full">
               <GameCanvas
                 key={`${gameKey}-${payment.hasPaid ? payment.rankedSeed ?? "r" : "free"}`}

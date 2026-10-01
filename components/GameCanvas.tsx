@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   createInitialState,
   flap,
@@ -13,6 +13,8 @@ import { mulberry32, type Rng } from "@/lib/game/rng";
 import { renderFrame } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
 import YearStage from "@/components/year/YearStage";
+
+const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
 export type RunLog = {
   score: number;
@@ -50,6 +52,7 @@ export default function GameCanvas({
   const rngRef = useRef<Rng | null>(null);
   const flapsRef = useRef<number[]>([]);
   const playSizeRef = useRef({ w: 0, h: 0 });
+  const startedRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [year, setYear] = useState(2008);
   const gameOverSent = useRef(false);
@@ -60,6 +63,7 @@ export default function GameCanvas({
     if (!canvas) return;
     const parent = canvas.parentElement;
     if (!parent) return;
+    if (startedRef.current) return;
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = parent.clientWidth;
@@ -73,15 +77,11 @@ export default function GameCanvas({
     const ctx = canvas.getContext("2d");
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-    if (!stateRef.current) {
-      rngRef.current = ranked ? mulberry32(rankedSeed >>> 0) : null;
-      flapsRef.current = [];
-      playSizeRef.current = { w, h };
-      stateRef.current = createInitialState(w, h, highScore, rngRef.current || undefined);
-      setReady(true);
-    } else if (!ranked) {
-      stateRef.current.bird.x = w * 0.22;
-    }
+    rngRef.current = ranked ? mulberry32(rankedSeed >>> 0) : null;
+    flapsRef.current = [];
+    playSizeRef.current = { w, h };
+    stateRef.current = createInitialState(w, h, highScore, rngRef.current || undefined);
+    setReady(true);
   }, [highScore, ranked, rankedSeed]);
 
   useEffect(() => {
@@ -156,6 +156,7 @@ export default function GameCanvas({
     if (stateRef.current.frame === 0 && flapsRef.current.length === 0) {
       onRunStart?.();
     }
+    startedRef.current = true;
     flapsRef.current.push(stateRef.current.frame);
     stateRef.current = flap(stateRef.current);
   }, [enabled, onRunStart]);
@@ -171,7 +172,7 @@ export default function GameCanvas({
     return () => window.removeEventListener("keydown", onKey);
   }, [doFlap]);
 
-  useEffect(() => {
+  useIsoLayoutEffect(() => {
     resize();
     const ro = new ResizeObserver(() => resize());
     if (canvasRef.current?.parentElement) ro.observe(canvasRef.current.parentElement);

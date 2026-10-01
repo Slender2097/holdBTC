@@ -57,6 +57,7 @@ export default function YearStage({ year }: { year: number }) {
         pointerEvents: "none",
         zIndex: 0,
         background: "transparent",
+        transform: "translateZ(0)",
       }}
     />
   );
