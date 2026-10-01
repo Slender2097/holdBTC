@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitcoin Winter Background</title>
+<style>
+/* Text-free, freezing scene: the 2018 Bitcoin winter - a shivering frozen coin in a beanie and scarf, snow falling, everything sinking and iced over. */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#b9dcf0 0%,#dff1fb 55%,#f4fbff 100%)}
+.crayon{filter:url(#crayon-filter)}
+.abs{position:absolute}
+#rays{left:50%;top:46%;width:200vmax;height:200vmax;margin:-100vmax 0 0 -100vmax;background:repeating-conic-gradient(rgba(255,255,255,.5) 0 7deg,transparent 7deg 18deg);-webkit-mask-image:radial-gradient(circle,#000 0,transparent 55%);mask-image:radial-gradient(circle,#000 0,transparent 55%);animation:spin 140s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* the shivering frozen coin */
+#sun{left:50%;top:46%;width:min(46vmin,350px);height:min(46vmin,350px);margin:calc(min(46vmin,350px)/-2) 0 0 calc(min(46vmin,350px)/-2);animation:bob 6s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(6px) rotate(-2deg)}to{transform:translateY(-8px) rotate(2deg)}}
+#sun svg{width:100%;height:100%;display:block;animation:sh .14s linear infinite alternate}
+@keyframes sh{from{transform:translate(-2px,0) rotate(-.6deg)}to{transform:translate(2px,1.5px) rotate(.6deg)}}
+.tooth{animation:sh .1s linear infinite alternate}
+.cl{top:var(--y);left:0;animation:cloud var(--t) linear infinite;animation-delay:var(--dl);opacity:.75}
+@keyframes cloud{from{transform:translateX(-25vw)}to{transform:translateX(115vw)}}
+/* frosty breath puffing out */
+.ht{animation:puff 5s ease-out infinite;animation-delay:var(--dl);opacity:0}
+@keyframes puff{0%{opacity:0;transform:translate(0,0) scale(.5)}25%{opacity:.9}100%{opacity:0;transform:translate(-6vmin,-16vh) scale(1.3)}}
+/* snow + things sinking */
+.fall{top:0;animation:fall var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes fall{from{transform:translateY(-15vh)}to{transform:translateY(112vh)}}
+.sn{width:var(--s);height:var(--s);border-radius:50%;background:#fff;box-shadow:0 0 5px #8ec5e6;opacity:.95}
+.sw{animation:sway 6s ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes sway{from{transform:translateX(-18px) rotate(-10deg)}to{transform:translateX(18px) rotate(10deg)}}
+.tw{animation:twirl 14s linear infinite}
+@keyframes twirl{to{transform:rotate(360deg)}}
+.sp{animation:tws var(--t) ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes tws{from{opacity:.1;transform:scale(.5)}to{opacity:1;transform:scale(1.1) rotate(25deg)}}
+/* snowbank + conveyor of frozen things */
+#drift{left:0;bottom:11%;width:100%;height:9%}
+#table{left:0;bottom:0;width:100%;height:15%;border-top:5px solid #5aa9e6;background:radial-gradient(circle,#bfe3f5 2px,transparent 3px) 0 0/36px 28px,#f4fbff}
+.track{bottom:2.5%;left:0;display:flex;align-items:center;gap:22px;width:max-content;animation:scroll 90s linear infinite}
+@keyframes scroll{to{transform:translateX(-50%)}}
+/* frost creeping in from the edges */
+#frost{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 50%,rgba(225,245,255,.85) 100%);box-shadow:inset 0 0 90px 30px rgba(255,255,255,.85);animation:fr 7s ease-in-out infinite alternate}
+@keyframes fr{from{opacity:.75}to{opacity:1}}
+svg.i{display:block}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="icecoin" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#bfe3f5" stroke="#2f6f9a" stroke-width="5"/><circle cx="32" cy="32" r="17" fill="none" stroke="#2f6f9a" stroke-width="3" opacity=".5"/><path d="M20 22a14 14 0 0 1 9-7" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M44 14 38 28l8 6-6 14" stroke="#2f6f9a" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/></symbol>
+<symbol id="icecube" viewBox="0 0 64 64"><path d="M32 6 56 19 32 32 8 19Z" fill="#e6f6fd" stroke="#2f6f9a" stroke-width="4" stroke-linejoin="round"/><path d="M8 19v26l24 13V32Z" fill="#bfe3f5" stroke="#2f6f9a" stroke-width="4" stroke-linejoin="round"/><path d="M56 19v26L32 58V32Z" fill="#8ec5e6" stroke="#2f6f9a" stroke-width="4" stroke-linejoin="round"/><path d="M16 26l6 4" stroke="#fff" stroke-width="3" stroke-linecap="round"/></symbol>
+<symbol id="flake" viewBox="0 0 64 64"><g stroke="#5aa9e6" stroke-width="5" stroke-linecap="round" fill="none"><path d="M32 6V58M9.5 19 54.5 45M9.5 45 54.5 19"/><path d="M26 12 32 18 38 12M26 52 32 46 38 52"/></g><circle cx="32" cy="32" r="5" fill="#fff" stroke="#5aa9e6" stroke-width="3"/></symbol>
+<symbol id="icicle" viewBox="0 0 64 64"><path d="M14 6H50L40 26 34 58 28 30Z" fill="#d6effb" stroke="#2f6f9a" stroke-width="4" stroke-linejoin="round"/><path d="M22 12 28 28" stroke="#fff" stroke-width="3" stroke-linecap="round"/></symbol>
+<symbol id="chart" viewBox="0 0 64 64"><path d="M6 8V56H58" fill="none" stroke="#2f6f9a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 14 24 26 32 20 42 38 50 34 56 50" fill="none" stroke="#d9536a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/><path d="M47 52 57 51 54 41" fill="none" stroke="#d9536a" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="snowman" viewBox="0 0 64 64"><circle cx="32" cy="46" r="15" fill="#fff" stroke="#2f6f9a" stroke-width="4"/><circle cx="32" cy="24" r="11" fill="#fff" stroke="#2f6f9a" stroke-width="4"/><rect x="22" y="8" width="20" height="8" rx="2" fill="#222"/><rect x="18" y="14" width="28" height="4" rx="2" fill="#222"/><path d="M33 25 44 28 33 29Z" fill="#e8973a" stroke="#b8651b" stroke-width="2" stroke-linejoin="round"/><circle cx="28" cy="21" r="2" fill="#222"/><circle cx="36" cy="21" r="2" fill="#222"/></symbol>
+<symbol id="thermo" viewBox="0 0 64 64"><rect x="24" y="6" width="16" height="38" rx="8" fill="#fbf8ec" stroke="#222" stroke-width="4"/><circle cx="32" cy="50" r="10" fill="#5aa9e6" stroke="#222" stroke-width="4"/><rect x="29.5" y="38" width="5" height="12" fill="#5aa9e6"/><path d="M42 16H48M42 24H48M42 32H48" stroke="#222" stroke-width="3" stroke-linecap="round" opacity=".5"/></symbol>
+<symbol id="puff" viewBox="0 0 64 64"><circle cx="24" cy="36" r="14" fill="#fff" stroke="#8ec5e6" stroke-width="3"/><circle cx="40" cy="30" r="16" fill="#fff" stroke="#8ec5e6" stroke-width="3"/><circle cx="34" cy="42" r="12" fill="#fff"/></symbol>
+<symbol id="cloud" viewBox="0 0 96 48"><path d="M14 42a12 12 0 0 1-2-24 18 18 0 0 1 34-6 16 16 0 0 1 28 10 11 11 0 0 1-2 20Z" fill="#dbe8f2" stroke="#222" stroke-width="3.5" stroke-linejoin="round" opacity=".9"/></symbol>
+<symbol id="sparkle" viewBox="0 0 64 64"><path d="M32 6 38 26 58 32 38 38 32 58 26 38 6 32 26 26Z" fill="#fff" stroke="#8ec5e6" stroke-width="3" stroke-linejoin="round"/></symbol>
+</defs></svg>
+
+<div id="rays" class="abs" aria-hidden="true"></div>
+<div id="sky" aria-hidden="true"></div>
+
+<!-- big shivering frozen coin in a beanie and scarf -->
+<div id="sun" class="abs" aria-hidden="true">
+<svg class="crayon" viewBox="0 -24 200 230">
+  <circle cx="100" cy="104" r="88" fill="#bfe3f5" stroke="#2f6f9a" stroke-width="7"/>
+  <circle cx="100" cy="104" r="70" fill="#e6f6fd" stroke="#2f6f9a" stroke-width="4" opacity=".9"/>
+  <path d="M46 80a62 62 0 0 1 30-36" stroke="#fff" stroke-width="8" fill="none" stroke-linecap="round"/>
+  <path d="M150 62 138 82l14 8-10 18" stroke="#8ec5e6" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M38 62Q44 6 100 4Q156 6 162 62Z" fill="#d9536a" stroke="#222" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M60 14V60M80 8V60M100 6V60M120 8V60M140 14V60" stroke="#a3243a" stroke-width="3" opacity=".5"/>
+  <rect x="32" y="56" width="136" height="22" rx="11" fill="#fbf8ec" stroke="#222" stroke-width="6"/>
+  <circle cx="100" cy="0" r="15" fill="#fbf8ec" stroke="#222" stroke-width="5"/>
+  <path d="M64 104Q76 92 90 104M110 104Q124 92 136 104" fill="none" stroke="#222" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="60" cy="118" r="11" fill="#5aa9e6" opacity=".6"/><circle cx="140" cy="118" r="11" fill="#5aa9e6" opacity=".6"/>
+  <circle cx="100" cy="116" r="8" fill="#ff6b81" stroke="#c92a2a" stroke-width="3"/>
+  <path class="tooth" d="M74 140 84 132 94 142 104 132 114 142 124 132 130 138" fill="none" stroke="#222" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M40 152Q100 190 160 152L156 176Q100 210 44 176Z" fill="#5aa9e6" stroke="#222" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M70 164V192M100 170V200M130 164V192" stroke="#fff" stroke-width="5" opacity=".7" stroke-linecap="round"/>
+  <rect x="134" y="168" width="24" height="40" rx="7" fill="#5aa9e6" stroke="#222" stroke-width="6"/>
+</svg>
+</div>
+
+<div id="front" aria-hidden="true"></div>
+<svg id="drift" class="abs crayon" viewBox="0 0 1000 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 60C120 10 260 70 420 40S720 0 1000 50V100H0Z" fill="#fff" stroke="#8ec5e6" stroke-width="4" vector-effect="non-scaling-stroke"/></svg>
+<div id="table" class="abs crayon" aria-hidden="true"></div>
+<div id="track" aria-hidden="true"></div>
+<div id="frost" aria-hidden="true"></div>
+
+<svg style="display:none" aria-hidden="true">
+  <filter id="crayon-filter">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<script>
+(function(){
+  var sky='',fr='',i,s,u=function(n,w,c){return '<svg class="i crayon '+(c||'')+'" width="'+w+'" height="'+w+'"><use href="#'+n+'"/></svg>'};
+  /* grey snow clouds + twinkling ice */
+  for(i=0;i<3;i++)sky+='<div class="abs cl" style="--y:'+(5+i*11)+'%;--t:'+(90+i*25)+'s;--dl:-'+(i*38)+'s"><svg class="i crayon" width="'+(110+(i*37)%70)+'" height="'+(55+(i*19)%35)+'" viewBox="0 0 96 48"><use href="#cloud"/></svg></div>';
+  for(i=0;i<7;i++)sky+='<div class="abs sp" style="left:'+(4+(i*29)%92)+'%;top:'+(4+(i*23)%50)+'%;--t:'+(2+(i%4)*.9)+'s;--dl:-'+(i*.7)+'s">'+u('sparkle',16+(i%3)*8)+'</div>';
+  document.getElementById('sky').innerHTML=sky;
+  /* frosty breath puffing from the coin */
+  [-14,0,14].forEach(function(o,k){fr+='<div class="abs ht" style="left:calc(50% + '+(o*.6)+'vmin);top:52%;--dl:-'+(k*1.7)+'s">'+u('puff',38)+'</div>'});
+  /* snow */
+  for(i=0;i<30;i++){s=4+(i*7)%9;
+    fr+='<div class="abs fall" style="left:'+((i*37)%100)+'%;--t:'+(9+(i*5)%9)+'s;--dl:-'+((i*2.3)%16).toFixed(1)+'s"><div class="sn sw" style="--s:'+s+'px;--dl:-'+(i%6)+'s"></div></div>'}
+  /* big snowflakes spinning down */
+  for(i=0;i<4;i++)fr+='<div class="abs fall" style="left:'+(14+i*26)+'%;--t:'+(20+i*4)+'s;--dl:-'+(i*6)+'s"><div class="sw">'+u('flake',34+(i%2)*14,'tw')+'</div></div>';
+  /* everything is sinking: frozen coin, crashing chart, ice block, icicle, snowman, thermometer */
+  var n=['chart','icecoin','thermo','icecube','icicle','snowman','icecoin'];
+  for(i=0;i<n.length;i++){s=56+(i*17)%30;
+    fr+='<div class="abs fall" style="left:'+(5+i*13.5)+'%;--t:'+(34+(i*7)%16)+'s;--dl:-'+(i*5.3)+'s;opacity:.85"><div class="sw">'+u(n[i],s)+'</div></div>'}
+  document.getElementById('front').innerHTML=fr;
+  /* conveyor on the snowbank */
+  var seq=['icecube','icecoin','snowman','icicle','chart','flake'],t='';
+  for(i=0;i<12;i++)t+=u(seq[i%6],44);
+  document.getElementById('track').innerHTML='<div class="abs track">'+t+t+'</div>';
+})();
+</script>
+</body>
+</html>

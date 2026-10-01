@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Satoshi — La red sigue sin él</title>
+<style>
+/* Loop de 28s sin texto: 1) Satoshi aparece  2) se desvanece en polvo dorado  3) nace una red y las monedas circulan */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#b3a9e6 0%,#dcbfe0 35%,#f5c6b0 68%,#f8dd9c 100%)}
+#sky{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.mote{position:absolute;bottom:-20px;left:var(--x);width:var(--s);height:var(--s);background:#ffd45a;opacity:.4;border-radius:2px;animation:mote var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes mote{from{transform:translateY(0) rotate(0)}to{transform:translateY(-112vh) rotate(200deg)}}
+.st{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);background:#fff6cf;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);animation:tw var(--t) ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes tw{from{opacity:.15;transform:scale(.6)}to{opacity:.9;transform:scale(1.1)}}
+#stage{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.k{animation-duration:28s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+.fb{transform-box:fill-box;transform-origin:center}
+.flap{transform-box:fill-box;transform-origin:0% 0%;animation:fl 1.8s ease-in-out infinite alternate}
+@keyframes fl{from{transform:rotate(-2deg) skewX(0)}to{transform:rotate(4deg) skewX(-7deg)}}
+.float{animation:fo 3s ease-in-out infinite alternate}
+@keyframes fo{from{transform:translateY(0)}to{transform:translateY(-7px)}}
+.spin{transform-box:fill-box;transform-origin:center;animation:sp .8s linear infinite}
+@keyframes sp{50%{transform:scaleX(.25)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}#sat{opacity:1}}
+</style>
+<style id="kf"></style>
+</head>
+<body>
+<div id="sky" aria-hidden="true"></div>
+<svg id="stage" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+<defs>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <radialGradient id="glow"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#f0a92e"/></linearGradient>
+  <symbol id="coin" viewBox="-20 -20 40 40"><circle r="18" fill="url(#gold)" stroke="#8a5a00" stroke-width="3.5"/><circle r="12" fill="none" stroke="#8a5a00" stroke-width="2" opacity=".55"/><text y="7" text-anchor="middle" font-size="20" font-weight="900" fill="#7a4a00" font-family="Arial,sans-serif">₿</text><path d="M-11 -8a13 13 0 0 1 8-7" stroke="#fff6cf" stroke-width="3" fill="none" stroke-linecap="round"/></symbol>
+</defs>
+
+<!-- montañas + suelo -->
+<path d="M-100 470 50 340 200 430 340 310 500 440 660 340 800 440 940 320 1100 470Z" fill="#a89bd4" opacity=".7"/>
+<g filter="url(#crayon)"><rect x="-50" y="470" width="1100" height="120" fill="#7f70b8" stroke="#5b4d96" stroke-width="6"/></g>
+<path d="M-50 520H1050" stroke="#c9bdf0" stroke-width="5" stroke-dasharray="70 60" opacity=".6"/>
+
+<!-- la roca -->
+<g transform="translate(280 0)" filter="url(#crayon)"><path d="M30 470 70 410 140 388 220 404 300 380 370 400 410 470Z" fill="#4c4180" stroke="#2b2350" stroke-width="6" stroke-linejoin="round"/><path d="M140 388 220 404 190 470 70 410ZM300 380 370 400 340 470 240 470Z" fill="#5c50a0" opacity=".7"/></g>
+
+<!-- SATOSHI -->
+<g transform="translate(500 400)">
+  <g class="k" style="animation-name:aura" opacity="0"><circle cy="-190" r="250" fill="url(#glow)"/></g>
+  <g id="sat" class="k fb" style="animation-name:sat;animation-timing-function:linear;transform-origin:50% 100%" opacity="0">
+   <g class="float">
+    <path class="flap" d="M20 -240C90 -215 160 -150 195 -50 140 -70 92 -48 62 0Z" fill="#1e1840" stroke="#0f0b26" stroke-width="5" stroke-linejoin="round"/>
+    <path class="flap" d="M20 -244C85 -262 135 -248 178 -198" fill="none" stroke="#ff6b6b" stroke-width="13" stroke-linecap="round"/>
+    <path d="M-48 -246Q0 -266 48 -246L78 0H-78Z" fill="#241d4a" stroke="#0f0b26" stroke-width="5" stroke-linejoin="round"/>
+    <path d="M0 -252V0M-32 -200-62 0M32 -200 62 0" stroke="#0f0b26" stroke-width="3" opacity=".45"/>
+    <path d="M48 -246 78 0" stroke="#ffb84a" stroke-width="6" stroke-linecap="round"/>
+    <path d="M-42 -236-124 -298" stroke="#0f0b26" stroke-width="42" stroke-linecap="round"/><path d="M-42 -236-124 -298" stroke="#241d4a" stroke-width="32" stroke-linecap="round"/>
+    <path d="M42 -236 130 -316" stroke="#0f0b26" stroke-width="42" stroke-linecap="round"/><path d="M42 -236 130 -316" stroke="#241d4a" stroke-width="32" stroke-linecap="round"/>
+    <circle cx="-128" cy="-302" r="24" fill="url(#glow)"/><circle cx="-128" cy="-302" r="12" fill="#ffd45a"/>
+    <circle cx="134" cy="-320" r="30" fill="url(#glow)"/><circle cx="134" cy="-320" r="14" fill="#ffd45a"/>
+    <circle cy="-292" r="58" fill="#241d4a" stroke="#0f0b26" stroke-width="5"/>
+    <path d="M40 -334A58 58 0 0 1 58 -292" fill="none" stroke="#ffb84a" stroke-width="5" stroke-linecap="round"/>
+    <circle cy="-292" r="42" fill="url(#gold)" stroke="#8a5a00" stroke-width="5"/><circle cy="-292" r="33" fill="none" stroke="#8a5a00" stroke-width="2.5" opacity=".55"/>
+    <text y="-272" text-anchor="middle" font-size="62" font-weight="900" fill="#7a4a00" font-family="Arial,sans-serif">₿</text>
+    <path d="M-28 -312a34 34 0 0 1 20 -14" stroke="#fff6cf" stroke-width="5" fill="none" stroke-linecap="round"/>
+   </g>
+  </g>
+</g>
+
+<g id="dust"></g>
+
+<!-- la red -->
+<g id="net" class="k" style="animation-name:net" opacity="0">
+  <g id="links" stroke="#8a5a00" stroke-width="3" stroke-linecap="round" opacity=".55" stroke-dasharray="2 9"></g>
+  <g id="nodes"></g>
+  <g id="coins"></g>
+</g>
+</svg>
+
+<script>
+(function(){
+  var D=28,i,$=function(id){return document.getElementById(id)};
+  function pc(s){return (s/D*100).toFixed(3)+'%'}
+  function kf(n,st){var l=st[st.length-1];if(l[0]<D)st=st.concat([[D,l[1]]]);return '@keyframes '+n+'{'+st.map(function(x){return pc(x[0])+'{'+x[1]+'}'}).join('')+'}'}
+  var seed=7;function rnd(){seed=(seed*9301+49297)%233280;return seed/233280}
+
+  /* cielo tranquilo */
+  var sk='';
+  for(i=0;i<16;i++)sk+='<div class="st" style="--x:'+(rnd()*96)+'%;--y:'+(rnd()*45)+'%;--s:'+(8+rnd()*12)+'px;--t:'+(2+rnd()*3)+'s;--dl:-'+(rnd()*4)+'s"></div>';
+  for(i=0;i<14;i++)sk+='<div class="mote" style="--x:'+(rnd()*98)+'%;--s:'+(5+rnd()*6)+'px;--t:'+(22+rnd()*20)+'s;--dl:-'+(rnd()*40)+'s"></div>';
+  $('sky').innerHTML=sk;
+
+  var css=
+   kf('sat',[[0,'opacity:0;transform:translate(0,0)'],[.4,'opacity:1'],[4.8,'opacity:1;transform:translate(0,0)'],[4.95,'opacity:1;transform:translate(14px,0) skewX(-10deg)'],[5.1,'opacity:.3;transform:translate(-10px,0) skewX(8deg)'],[5.25,'opacity:1;transform:translate(8px,0)'],[5.45,'opacity:.2;transform:translate(-16px,0) skewX(12deg)'],[5.65,'opacity:.9;transform:translate(0,0)'],[5.95,'opacity:.2;transform:translate(10px,0) skewX(-8deg)'],[6.3,'opacity:0;transform:translate(0,-14px)'],[27.4,'opacity:0;transform:translate(0,-14px)'],[27.5,'opacity:0;transform:translate(0,0)']])+
+   kf('aura',[[0,'opacity:0'],[.4,'opacity:.8'],[4.8,'opacity:.8'],[6.3,'opacity:0']])+
+   kf('pt',[[0,'opacity:0;transform:translate(0,0) rotate(0deg)'],[.4,'opacity:.95'],[2.8,'opacity:.9;transform:translate(var(--dx),var(--dy)) rotate(200deg)'],[3.6,'opacity:0;transform:translate(var(--dx),var(--dy)) rotate(260deg)']])+
+   kf('net',[[0,'opacity:0'],[7,'opacity:0'],[8.5,'opacity:1'],[26.6,'opacity:1'],[27.7,'opacity:0']]);
+
+  /* polvo dorado: Satoshi se disuelve y sube hacia donde nacerá la red */
+  var dt='';for(i=0;i<46;i++){var s=6+rnd()*9;
+    dt+='<rect class="k fb" x="'+(380+rnd()*240)+'" y="'+(90+rnd()*300)+'" width="'+s+'" height="'+s+'" fill="#ffd45a" stroke="#b9770e" stroke-width="1.5" style="animation-name:pt;animation-timing-function:ease-out;animation-delay:'+(5.2+rnd()*1.8)+'s;--dx:'+(-120+rnd()*240)+'px;--dy:'+(-(80+rnd()*200))+'px;opacity:0"/>'}
+  $('dust').innerHTML=dt;
+
+  /* nodos y enlaces */
+  var N=[[500,240],[300,150],[700,150],[150,250],[850,250],[400,330],[600,330],[230,370],[770,370],[500,90],[110,130],[890,130]];
+  var L=[[0,1],[0,2],[0,5],[0,6],[1,3],[2,4],[1,9],[2,9],[3,7],[4,8],[5,7],[6,8],[5,6],[3,10],[4,11],[1,10],[2,11],[0,9]];
+  var ln='',nd='',cn='';
+  L.forEach(function(l){var a=N[l[0]],b=N[l[1]];ln+='<line x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'"/>'});
+  N.forEach(function(p,n){
+    var t=7.2+n*.22;
+    css+=kf('nd'+n,[[0,'opacity:0;transform:scale(0)'],[t,'opacity:0;transform:scale(0)'],[t+.5,'opacity:1;transform:scale(1.35)'],[t+.9,'opacity:1;transform:scale(1)'],[26.6,'opacity:1;transform:scale(1)'],[27.7,'opacity:0;transform:scale(1)']]);
+    nd+='<g transform="translate('+p[0]+' '+p[1]+')"><g class="k fb" style="animation-name:nd'+n+';opacity:0"><circle r="34" fill="url(#glow)"/><circle r="15" fill="#241d4a" stroke="#0f0b26" stroke-width="4"/><circle r="6.5" fill="#ffd45a" stroke="#b9770e" stroke-width="2"/></g></g>'});
+  /* monedas viajando por los enlaces en ambos sentidos */
+  L.forEach(function(l,n){
+    [0,1].forEach(function(d){
+      var a=N[d?l[1]:l[0]],b=N[d?l[0]:l[1]],dur=(2.6+rnd()*2.6).toFixed(2),bg=-(rnd()*5).toFixed(2);
+      cn+='<g><animateMotion dur="'+dur+'s" begin="'+bg+'s" repeatCount="indefinite" path="M'+a[0]+' '+a[1]+'L'+b[0]+' '+b[1]+'"/><g class="spin"><use href="#coin" x="-14" y="-14" width="28" height="28"/></g></g>'});
+  });
+  $('links').innerHTML=ln;$('nodes').innerHTML=nd;$('coins').innerHTML=cn;
+  $('kf').textContent=css;
+})();
+</script>
+</body>
+</html>

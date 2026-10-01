@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>El Salvador Bitcoin Law Background</title>
+<style>
+/* Text-free, happy scene: a nation adopts Bitcoin (El Salvador, 2021). */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#bfe0f5 0%,#fdf0c8 55%,#f9d98b 100%)}
+.crayon{filter:url(#crayon-filter)}
+.abs{position:absolute}
+#rays{left:50%;top:44%;width:200vmax;height:200vmax;margin:-100vmax 0 0 -100vmax;background:repeating-conic-gradient(rgba(255,205,90,.26) 0 7deg,transparent 7deg 18deg);-webkit-mask-image:radial-gradient(circle,#000 0,transparent 55%);mask-image:radial-gradient(circle,#000 0,transparent 55%);animation:spin 140s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* the happy coin sun */
+#sun{left:50%;top:44%;width:min(40vmin,320px);height:min(40vmin,320px);margin:calc(min(40vmin,320px)/-2) 0 0 calc(min(40vmin,320px)/-2);animation:bob 5s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(8px) rotate(-5deg)}to{transform:translateY(-12px) rotate(5deg)}}
+#sun svg{width:100%;height:100%;display:block}
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.cl{top:var(--y);left:0;animation:cloud var(--t) linear infinite;animation-delay:var(--dl);opacity:.6}
+@keyframes cloud{from{transform:translateX(-25vw)}to{transform:translateX(115vw)}}
+/* hearts puffing from the coin */
+.ht{animation:heart 6s ease-out infinite;animation-delay:var(--dl);opacity:0}
+@keyframes heart{0%{opacity:0;transform:translateY(0) scale(.6)}20%{opacity:.85}100%{opacity:0;transform:translateY(-20vh) scale(1.1)}}
+/* falling coins + confetti */
+.fall{top:0;animation:fall var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes fall{from{transform:translateY(-15vh)}to{transform:translateY(112vh)}}
+.dot{width:10px;height:10px;border-radius:2px;background:var(--c);opacity:.75}
+.fl{top:0;animation:rise var(--t) linear infinite;animation-delay:var(--dl);opacity:.75}
+@keyframes rise{from{transform:translateY(110vh)}to{transform:translateY(-30vh)}}
+.sw{animation:sway 6s ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes sway{from{transform:translateX(-14px) rotate(-10deg)}to{transform:translateX(14px) rotate(10deg)}}
+/* waving flag poles */
+.wave{transform-box:fill-box;transform-origin:0 50%;animation:wave 1.6s ease-in-out infinite alternate}
+@keyframes wave{from{transform:skewY(-6deg) scaleX(1)}to{transform:skewY(6deg) scaleX(.9)}}
+/* volcano smoke */
+.smk{transform-box:fill-box;transform-origin:center;animation:smoke 6s ease-out infinite;animation-delay:var(--dl);opacity:0}
+@keyframes smoke{0%{opacity:0;transform:translateY(0) scale(.5)}25%{opacity:.7}100%{opacity:0;transform:translateY(-90px) scale(1.6)}}
+#hills{left:0;bottom:14%;width:100%;height:30%}
+/* blue-white-blue ground strip + conveyor */
+#table{left:0;bottom:0;width:100%;height:15%;border-top:5px solid #1f4fa8;background:linear-gradient(#3b6fd4 0 33%,#fff 33% 66%,#3b6fd4 66%)}
+.track{bottom:2.5%;left:0;display:flex;align-items:center;gap:22px;width:max-content;animation:scroll 90s linear infinite}
+@keyframes scroll{to{transform:translateX(-50%)}}
+svg.i{display:block}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="coin" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#e8973a" stroke="#222" stroke-width="5"/><circle cx="32" cy="32" r="17" fill="none" stroke="#222" stroke-width="3" opacity=".5"/><path d="M20 22a14 14 0 0 1 9-7" stroke="#fff5cc" stroke-width="4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="flag" viewBox="0 0 64 64"><path d="M10 58V6" stroke="#222" stroke-width="4" stroke-linecap="round"/><rect x="12" y="8" width="44" height="10" fill="#3b6fd4"/><rect x="12" y="18" width="44" height="10" fill="#fff"/><rect x="12" y="28" width="44" height="10" fill="#3b6fd4"/><rect x="12" y="8" width="44" height="30" fill="none" stroke="#222" stroke-width="3"/></symbol>
+<symbol id="palm" viewBox="0 0 64 64"><path d="M30 60C32 44 34 34 38 22" stroke="#8a5a2b" stroke-width="6" fill="none" stroke-linecap="round"/><g fill="#a8e6b3" stroke="#2b8a3e" stroke-width="3" stroke-linejoin="round"><path d="M38 22C28 12 14 14 8 24 20 20 30 22 38 22Z"/><path d="M38 22C46 10 58 10 62 20 52 18 44 20 38 22Z"/><path d="M38 22C34 8 40 2 48 2 44 10 42 16 38 22Z"/><path d="M38 22C26 24 18 32 18 40 28 32 34 28 38 22Z"/></g></symbol>
+<symbol id="volc" viewBox="0 0 64 64"><path d="M4 58 24 20h16l20 38Z" fill="#8f8aa8" stroke="#3d3660" stroke-width="4" stroke-linejoin="round"/><path d="M24 20h16l-3 6H27Z" fill="#ff8a5c" stroke="#a3243a" stroke-width="2.5" stroke-linejoin="round"/></symbol>
+<symbol id="sparkle" viewBox="0 0 64 64"><path d="M32 6 38 26 58 32 38 38 32 58 26 38 6 32 26 26Z" fill="#fff3b8" stroke="#e8973a" stroke-width="3" stroke-linejoin="round"/></symbol>
+<symbol id="heart" viewBox="0 0 64 64"><path d="M32 54C8 36 12 14 26 14c5 0 6 3 6 6 0-3 1-6 6-6 14 0 18 22-6 40Z" fill="#ff8fa3" stroke="#c92a2a" stroke-width="3" stroke-linejoin="round"/></symbol>
+<symbol id="cloud" viewBox="0 0 96 48"><path d="M14 42a12 12 0 0 1-2-24 18 18 0 0 1 34-6 16 16 0 0 1 28 10 11 11 0 0 1-2 20Z" fill="#fbf8ec" stroke="#222" stroke-width="3.5" stroke-linejoin="round" opacity=".9"/></symbol>
+</defs></svg>
+
+<div id="rays" class="abs" aria-hidden="true"></div>
+<div id="sky" aria-hidden="true"></div>
+
+<!-- volcano hills -->
+<svg id="hills" class="abs crayon" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+  <path d="M0 300V220C120 200 200 140 250 100H310C360 150 420 210 520 230 620 210 680 150 730 100H790C840 150 900 200 1000 220V300Z" fill="#a8e6b3" stroke="#2b8a3e" stroke-width="4" vector-effect="non-scaling-stroke"/>
+  <path d="M250 100H310L296 118H264Z M730 100H790L776 118H744Z" fill="#ff8a5c" stroke="#a3243a" stroke-width="3" vector-effect="non-scaling-stroke"/>
+  <circle class="smk" cx="280" cy="86" r="16" fill="#fbf8ec" style="--dl:0s"/><circle class="smk" cx="288" cy="80" r="12" fill="#fbf8ec" style="--dl:-3s"/>
+  <circle class="smk" cx="760" cy="86" r="16" fill="#fbf8ec" style="--dl:-1.5s"/><circle class="smk" cx="752" cy="80" r="12" fill="#fbf8ec" style="--dl:-4.5s"/>
+</svg>
+
+<!-- big smiling coin -->
+<div id="sun" class="abs" aria-hidden="true">
+<svg class="crayon" viewBox="0 0 200 200">
+  <circle cx="100" cy="100" r="92" fill="#e8973a" stroke="#222" stroke-width="7"/>
+  <circle cx="100" cy="100" r="72" fill="#ffd76a" stroke="#b8651b" stroke-width="4"/>
+  <path d="M52 62a62 62 0 0 1 36-24" stroke="#fff5cc" stroke-width="9" fill="none" stroke-linecap="round"/>
+  <g fill="#222"><circle class="eye" cx="76" cy="90" r="9"/><circle class="eye" cx="124" cy="90" r="9"/></g>
+  <circle cx="60" cy="112" r="10" fill="#ff8fa3" opacity=".55"/><circle cx="140" cy="112" r="10" fill="#ff8fa3" opacity=".55"/>
+  <path d="M70 116Q100 158 130 116Z" fill="#a3243a" stroke="#222" stroke-width="5" stroke-linejoin="round"/>
+  <ellipse cx="100" cy="138" rx="13" ry="8" fill="#ff8fa3"/>
+</svg>
+</div>
+
+<!-- two big waving flags -->
+<svg class="abs" style="left:4%;bottom:14%;width:min(24vmin,200px);height:min(24vmin,200px)" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 62V4" stroke="#222" stroke-width="4" stroke-linecap="round"/><g class="wave crayon"><rect x="12" y="6" width="48" height="12" fill="#3b6fd4"/><rect x="12" y="18" width="48" height="12" fill="#fff"/><rect x="12" y="30" width="48" height="12" fill="#3b6fd4"/><rect x="12" y="6" width="48" height="36" fill="none" stroke="#222" stroke-width="3"/></g></svg>
+<svg class="abs" style="right:4%;bottom:14%;width:min(24vmin,200px);height:min(24vmin,200px)" viewBox="0 0 64 64" aria-hidden="true"><path d="M10 62V4" stroke="#222" stroke-width="4" stroke-linecap="round"/><g class="wave crayon" style="animation-delay:-.8s"><rect x="12" y="6" width="48" height="12" fill="#3b6fd4"/><rect x="12" y="18" width="48" height="12" fill="#fff"/><rect x="12" y="30" width="48" height="12" fill="#3b6fd4"/><rect x="12" y="6" width="48" height="36" fill="none" stroke="#222" stroke-width="3"/></g></svg>
+
+<div id="front" aria-hidden="true"></div>
+<div id="table" class="abs crayon" aria-hidden="true"></div>
+<div id="track" aria-hidden="true"></div>
+
+<svg style="display:none" aria-hidden="true">
+  <filter id="crayon-filter">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<script>
+(function(){
+  var sky='',fr='',i,s,u=function(n,w){return '<svg class="i crayon" width="'+w+'" height="'+w+'"><use href="#'+n+'"/></svg>'};
+  /* clouds */
+  for(i=0;i<3;i++)sky+='<div class="abs cl" style="--y:'+(5+i*11)+'%;--t:'+(90+i*25)+'s;--dl:-'+(i*38)+'s"><svg class="i crayon" width="'+(110+(i*37)%70)+'" height="'+(55+(i*19)%35)+'" viewBox="0 0 96 48"><use href="#cloud"/></svg></div>';
+  document.getElementById('sky').innerHTML=sky;
+  /* hearts puffing from the coin */
+  [-14,0,14].forEach(function(o,k){fr+='<div class="abs ht" style="left:calc(50% + '+(o*1.6)+'vmin);top:20%;--dl:-'+(k*2)+'s">'+u('heart',28)+'</div>'});
+  /* gold rain: coins falling over the country */
+  for(i=0;i<5;i++)fr+='<div class="abs fall" style="left:'+(8+i*20)+'%;--t:'+(16+(i*5)%9)+'s;--dl:-'+(i*4.2)+'s"><div class="sw">'+u('coin',34)+'</div></div>';
+  /* blue / white / gold confetti */
+  var cc=['#3b6fd4','#fff','#f5c542','#3b6fd4'];
+  for(i=0;i<8;i++)fr+='<div class="abs fall dot" style="left:'+(4+i*12.5)+'%;--c:'+cc[i%4]+';--t:'+(24+(i*3)%10)+'s;--dl:-'+(i*3)+'s"></div>';
+  /* floating things */
+  var n=['flag','coin','palm','sparkle'];
+  for(i=0;i<n.length;i++){s=56+(i*17)%30;
+    fr+='<div class="abs fl" style="left:'+(14+i*22)+'%;--t:'+(44+(i*7)%16)+'s;--dl:-'+(i*5.3)+'s"><div class="sw">'+u(n[i],s)+'</div></div>'}
+  document.getElementById('front').innerHTML=fr;
+  /* conveyor on the striped ground */
+  var seq=['flag','coin','palm','volc','coin','sparkle'],t='';
+  for(i=0;i<12;i++)t+=u(seq[i%6],44);
+  document.getElementById('track').innerHTML='<div class="abs track">'+t+t+'</div>';
+})();
+</script>
+</body>
+</html>

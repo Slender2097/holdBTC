@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bitcoin Whitepaper Background</title>
+<style>
+/* Text-free, happy scene: the Bitcoin whitepaper (Oct 2008) - a smiling paper sun, peer-to-peer coins, blocks chaining together. */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#cfe8f0 0%,#fdf0c8 55%,#f9d98b 100%)}
+.crayon{filter:url(#crayon-filter)}
+.abs{position:absolute}
+#rays{left:50%;top:46%;width:200vmax;height:200vmax;margin:-100vmax 0 0 -100vmax;background:repeating-conic-gradient(rgba(255,205,90,.26) 0 7deg,transparent 7deg 18deg);-webkit-mask-image:radial-gradient(circle,#000 0,transparent 55%);mask-image:radial-gradient(circle,#000 0,transparent 55%);animation:spin 140s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* the happy whitepaper sun */
+#sun{left:50%;top:46%;width:min(46vmin,350px);height:min(46vmin,350px);margin:calc(min(46vmin,350px)/-2) 0 0 calc(min(46vmin,350px)/-2);animation:bob 5s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(8px) rotate(-5deg)}to{transform:translateY(-12px) rotate(5deg)}}
+#sun svg{width:100%;height:100%;display:block}
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.cl{top:var(--y);left:0;animation:cloud var(--t) linear infinite;animation-delay:var(--dl);opacity:.6}
+@keyframes cloud{from{transform:translateX(-25vw)}to{transform:translateX(115vw)}}
+/* little coins puffing out of the paper */
+.ht{animation:puff 6s ease-out infinite;animation-delay:var(--dl);opacity:0}
+@keyframes puff{0%{opacity:0;transform:translateY(0) scale(.6)}20%{opacity:.9}100%{opacity:0;transform:translateY(-20vh) scale(1.1)}}
+/* coins hopping peer to peer, sideways */
+.zip{left:0;top:var(--y);animation:zip var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes zip{from{transform:translateX(-15vw)}to{transform:translateX(115vw)}}
+.trail{width:60px;height:5px;border-radius:3px;background:linear-gradient(90deg,transparent,#e8973a);margin-right:-6px;opacity:.7}
+.row{display:flex;align-items:center}
+.fall{top:0;animation:fall var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes fall{from{transform:translateY(-15vh)}to{transform:translateY(112vh)}}
+.dot{width:10px;height:10px;border-radius:2px;background:var(--c);opacity:.7}
+.fl{top:0;animation:rise var(--t) linear infinite;animation-delay:var(--dl);opacity:.7}
+@keyframes rise{from{transform:translateY(110vh)}to{transform:translateY(-30vh)}}
+.sw{animation:sway 6s ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes sway{from{transform:translateX(-14px) rotate(-10deg)}to{transform:translateX(14px) rotate(10deg)}}
+/* ground strip + conveyor of chained blocks */
+#table{left:0;bottom:0;width:100%;height:15%;border-top:5px solid #2b8a3e;background:repeating-linear-gradient(90deg,rgba(43,138,62,.22) 0 24px,transparent 24px 48px),#fbf3dc}
+.track{bottom:2.5%;left:0;display:flex;align-items:center;gap:8px;width:max-content;animation:scroll 90s linear infinite}
+@keyframes scroll{to{transform:translateX(-50%)}}
+svg.i{display:block}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="coin" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#e8973a" stroke="#222" stroke-width="5"/><circle cx="32" cy="32" r="17" fill="none" stroke="#222" stroke-width="3" opacity=".5"/><path d="M20 22a14 14 0 0 1 9-7" stroke="#fff5cc" stroke-width="4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="cube" viewBox="0 0 64 64"><path d="M32 6 56 19 32 32 8 19Z" fill="#c8f0d0" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/><path d="M8 19v26l24 13V32Z" fill="#a8e6b3" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/><path d="M56 19v26L32 58V32Z" fill="#84d494" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/></symbol>
+<symbol id="link" viewBox="0 0 64 64"><rect x="4" y="20" width="34" height="24" rx="12" fill="none" stroke="#222" stroke-width="5" transform="rotate(-20 21 32)"/><rect x="26" y="20" width="34" height="24" rx="12" fill="none" stroke="#d9536a" stroke-width="5" transform="rotate(-20 43 32)"/></symbol>
+<symbol id="page" viewBox="0 0 64 64"><rect x="14" y="6" width="36" height="52" rx="3" fill="#f4f1e2" stroke="#222" stroke-width="4"/><path d="M22 20h20M22 30h20M22 40h12" stroke="#222" stroke-width="3" opacity=".5" stroke-linecap="round"/></symbol>
+<symbol id="key" viewBox="0 0 64 64"><circle cx="20" cy="32" r="12" fill="#ffe08a" stroke="#e8973a" stroke-width="5"/><path d="M32 32h26M50 32v10M58 32v8" stroke="#e8973a" stroke-width="5" stroke-linecap="round" fill="none"/></symbol>
+<symbol id="lock" viewBox="0 0 64 64"><rect x="14" y="28" width="36" height="28" rx="4" fill="#ffa8a8" stroke="#c92a2a" stroke-width="5"/><path d="M22 28v-8a10 10 0 0 1 20 0v8" fill="none" stroke="#c92a2a" stroke-width="5"/><circle cx="32" cy="42" r="3" fill="#c92a2a"/></symbol>
+<symbol id="node" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="#c8f0d0" stroke="#2b8a3e" stroke-width="5"/><circle cx="32" cy="32" r="8" fill="#ffd93b" stroke="#b8651b" stroke-width="3"/></symbol>
+<symbol id="peers" viewBox="0 0 96 64"><path d="M22 32H74" stroke="#e8973a" stroke-width="5" stroke-dasharray="3 9" stroke-linecap="round"/><circle cx="18" cy="32" r="14" fill="#c8f0d0" stroke="#2b8a3e" stroke-width="4"/><circle cx="78" cy="32" r="14" fill="#c8f0d0" stroke="#2b8a3e" stroke-width="4"/><circle cx="18" cy="32" r="5" fill="#ffd93b"/><circle cx="78" cy="32" r="5" fill="#ffd93b"/><circle cx="48" cy="32" r="9" fill="#e8973a" stroke="#222" stroke-width="3"/></symbol>
+<symbol id="cloud" viewBox="0 0 96 48"><path d="M14 42a12 12 0 0 1-2-24 18 18 0 0 1 34-6 16 16 0 0 1 28 10 11 11 0 0 1-2 20Z" fill="#fbf8ec" stroke="#222" stroke-width="3.5" stroke-linejoin="round" opacity=".9"/></symbol>
+</defs></svg>
+
+<div id="rays" class="abs" aria-hidden="true"></div>
+<div id="sky" aria-hidden="true"></div>
+
+<!-- big smiling whitepaper -->
+<div id="sun" class="abs" aria-hidden="true">
+<svg class="crayon" viewBox="0 0 200 200">
+  <path d="M150 10H62Q46 10 46 26V174Q46 190 62 190H138Q154 190 154 174V50Z" fill="#fbf8ec" stroke="#222" stroke-width="7" stroke-linejoin="round"/>
+  <path d="M150 10V38Q150 50 162 50H154" fill="#e9dfc4" stroke="#222" stroke-width="6" stroke-linejoin="round"/>
+  <path d="M64 30H118M64 42H104" stroke="#222" stroke-width="6" opacity=".45" stroke-linecap="round"/>
+  <g fill="#222"><circle class="eye" cx="82" cy="82" r="8"/><circle class="eye" cx="118" cy="82" r="8"/></g>
+  <circle cx="70" cy="98" r="8" fill="#ff8fa3" opacity=".6"/><circle cx="130" cy="98" r="8" fill="#ff8fa3" opacity=".6"/>
+  <path d="M84 100Q100 124 116 100Z" fill="#a3243a" stroke="#222" stroke-width="5" stroke-linejoin="round"/>
+  <path d="M64 136H100M64 150H86" stroke="#222" stroke-width="5" opacity=".4" stroke-linecap="round"/>
+  <g transform="translate(122 152)"><circle r="20" fill="#e8973a" stroke="#222" stroke-width="5"/><circle r="12" fill="none" stroke="#222" stroke-width="3" opacity=".5"/><path d="M-11 -9a14 14 0 0 1 8-6" stroke="#fff5cc" stroke-width="4" fill="none" stroke-linecap="round"/></g>
+</svg>
+</div>
+
+<div id="front" aria-hidden="true"></div>
+<div id="table" class="abs crayon" aria-hidden="true"></div>
+<div id="track" aria-hidden="true"></div>
+
+<svg style="display:none" aria-hidden="true">
+  <filter id="crayon-filter">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<script>
+(function(){
+  var sky='',fr='',i,s,u=function(n,w){return '<svg class="i crayon" width="'+w+'" height="'+w+'"><use href="#'+n+'"/></svg>'};
+  /* clouds */
+  for(i=0;i<3;i++)sky+='<div class="abs cl" style="--y:'+(5+i*11)+'%;--t:'+(90+i*25)+'s;--dl:-'+(i*38)+'s"><svg class="i crayon" width="'+(110+(i*37)%70)+'" height="'+(55+(i*19)%35)+'" viewBox="0 0 96 48"><use href="#cloud"/></svg></div>';
+  document.getElementById('sky').innerHTML=sky;
+  /* little coins puffing from the paper */
+  [-14,0,14].forEach(function(o,k){fr+='<div class="abs ht" style="left:calc(50% + '+(o*1.6)+'vmin);top:22%;--dl:-'+(k*2)+'s">'+u(k==1?'cube':'coin',30)+'</div>'});
+  /* coins hopping across, peer to peer, no middleman */
+  for(i=0;i<6;i++)fr+='<div class="abs zip" style="--y:'+(14+i*11)+'%;--t:'+(5+(i*.9)%3)+'s;--dl:-'+(i*1.5)+'s"><div class="row"><div class="trail"></div>'+u('coin',30)+'</div></div>';
+  /* confetti */
+  var cc=['#d9536a','#f5c542','#2b8a3e','#5aa9e6'];
+  for(i=0;i<8;i++)fr+='<div class="abs fall dot" style="left:'+(4+i*12.5)+'%;--c:'+cc[i%4]+';--t:'+(24+(i*3)%10)+'s;--dl:-'+(i*3)+'s"></div>';
+  /* floating whitepaper stuff: page, key, lock, block, peers, link */
+  var n=['page','peers','key','cube','lock','node'];
+  for(i=0;i<n.length;i++){s=56+(i*17)%30;
+    fr+='<div class="abs fl" style="left:'+(6+i*16)+'%;--t:'+(44+(i*7)%16)+'s;--dl:-'+(i*5.3)+'s"><div class="sw">'+u(n[i],s)+'</div></div>'}
+  document.getElementById('front').innerHTML=fr;
+  /* conveyor on the ground: a chain of blocks */
+  var seq=['cube','link','cube','link','coin','page'],t='';
+  for(i=0;i<12;i++)t+=u(seq[i%6],44);
+  document.getElementById('track').innerHTML='<div class="abs track">'+t+t+'</div>';
+})();
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createInitialState,
   flap,
+  getYearFromScore,
   updateGame,
   RANKED_DT,
   RANKED_TICK_MS,
@@ -11,6 +12,7 @@ import {
 import { mulberry32, type Rng } from "@/lib/game/rng";
 import { renderFrame } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
+import YearStage from "@/components/year/YearStage";
 
 export type RunLog = {
   score: number;
@@ -28,6 +30,7 @@ interface GameCanvasProps {
   enabled?: boolean;
   className?: string;
   rankedSeed?: number | null;
+  onRunStart?: () => void;
 }
 
 export default function GameCanvas({
@@ -37,6 +40,7 @@ export default function GameCanvas({
   enabled = true,
   className = "",
   rankedSeed = null,
+  onRunStart,
 }: GameCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stateRef = useRef<GameState | null>(null);
@@ -47,6 +51,7 @@ export default function GameCanvas({
   const flapsRef = useRef<number[]>([]);
   const playSizeRef = useRef({ w: 0, h: 0 });
   const [ready, setReady] = useState(false);
+  const [year, setYear] = useState(2008);
   const gameOverSent = useRef(false);
   const ranked = rankedSeed != null;
 
@@ -58,7 +63,7 @@ export default function GameCanvas({
 
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const w = parent.clientWidth;
-    const h = Math.min(parent.clientHeight, window.innerHeight * 0.72);
+    const h = parent.clientHeight || Math.min(window.innerHeight * 0.72, 640);
 
     canvas.width = w * dpr;
     canvas.height = h * dpr;
@@ -119,8 +124,10 @@ export default function GameCanvas({
         }
         renderFrame(ctx, stateRef.current, viewW, viewH);
       } else {
-        const rawDt = lastTimeRef.current ? (time - lastTimeRef.current) / 16.666 : 1;
-        const dt = Math.min(Math.max(rawDt, 0.5), 2.5);
+        const dt = Math.min(
+          Math.max(lastTimeRef.current ? (time - lastTimeRef.current) / 16.666 : 1, 0.5),
+          2.5
+        );
         lastTimeRef.current = time;
         const prev = stateRef.current;
         const next = updateGame(prev, dt, viewW, viewH, Math.random);
@@ -133,6 +140,9 @@ export default function GameCanvas({
         }
       }
 
+      const y = getYearFromScore(stateRef.current.score);
+      setYear((prevYear) => (prevYear === y ? prevYear : y));
+
       rafRef.current = requestAnimationFrame(loop);
     };
 
@@ -143,9 +153,12 @@ export default function GameCanvas({
   const doFlap = useCallback(() => {
     if (!enabled || !stateRef.current) return;
     if (stateRef.current.isGameOver) return;
+    if (stateRef.current.frame === 0 && flapsRef.current.length === 0) {
+      onRunStart?.();
+    }
     flapsRef.current.push(stateRef.current.frame);
     stateRef.current = flap(stateRef.current);
-  }, [enabled]);
+  }, [enabled, onRunStart]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -170,10 +183,11 @@ export default function GameCanvas({
   }, [resize]);
 
   return (
-    <div className={`relative w-full h-full min-h-[320px] ${className}`}>
+    <div className={`relative w-full h-full min-h-[320px] overflow-hidden ${className}`}>
+      <YearStage year={year} />
       <canvas
         ref={canvasRef}
-        className="w-full h-full rounded-xl bg-[#0a0a12] cursor-pointer"
+        className="relative z-10 w-full h-full rounded-xl bg-transparent cursor-pointer"
         onClick={doFlap}
         onTouchStart={(e) => {
           e.preventDefault();

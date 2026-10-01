@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Node Revolution Background</title>
+<style>
+/* Text-free, happy scene: 2019, the Node Revolution - a smiling little home node broadcasting, and more and more nodes popping up and joining the network. */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#cfe8f0 0%,#fdf0c8 55%,#f9d98b 100%)}
+.crayon{filter:url(#crayon-filter)}
+.abs{position:absolute}
+#rays{left:50%;top:46%;width:200vmax;height:200vmax;margin:-100vmax 0 0 -100vmax;background:repeating-conic-gradient(rgba(255,205,90,.26) 0 7deg,transparent 7deg 18deg);-webkit-mask-image:radial-gradient(circle,#000 0,transparent 55%);mask-image:radial-gradient(circle,#000 0,transparent 55%);animation:spin 140s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* the happy home node */
+#sun{left:50%;top:46%;width:min(44vmin,340px);height:min(44vmin,340px);margin:calc(min(44vmin,340px)/-2) 0 0 calc(min(44vmin,340px)/-2);animation:bob 5s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(8px) rotate(-4deg)}to{transform:translateY(-12px) rotate(4deg)}}
+#sun svg{width:100%;height:100%;display:block}
+.eye{transform-box:fill-box;transform-origin:center;animation:blink 5s infinite}
+@keyframes blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.1)}}
+.led{animation:led 1s steps(2) infinite}
+@keyframes led{50%{opacity:.25}}
+.wv{animation:wv 2s ease-out infinite}
+@keyframes wv{0%{opacity:0}30%{opacity:1}100%{opacity:0}}
+.cl{top:var(--y);left:0;animation:cloud var(--t) linear infinite;animation-delay:var(--dl);opacity:.6}
+@keyframes cloud{from{transform:translateX(-25vw)}to{transform:translateX(115vw)}}
+/* little nodes puffing out */
+.ht{animation:puff 6s ease-out infinite;animation-delay:var(--dl);opacity:0}
+@keyframes puff{0%{opacity:0;transform:translateY(0) scale(.6)}20%{opacity:.9}100%{opacity:0;transform:translateY(-20vh) scale(1.1)}}
+/* the network growing: nodes pop up one by one, links light up, then it all resets */
+#net{position:absolute;inset:0;width:100%;height:100%}
+#net line{stroke:#2b8a3e;stroke-width:3;stroke-dasharray:4 12;stroke-linecap:round;vector-effect:non-scaling-stroke;opacity:0;animation:lf 14s ease-in-out infinite backwards,flow 1s linear infinite}
+@keyframes lf{0%{opacity:0}6%{opacity:.6}88%{opacity:.6}96%{opacity:0}100%{opacity:0}}
+@keyframes flow{to{stroke-dashoffset:-16}}
+.nd{animation:pop 14s ease-in-out infinite backwards;animation-delay:var(--dl)}
+@keyframes pop{0%{transform:scale(0)}4%{transform:scale(1.3)}7%{transform:scale(1)}88%{transform:scale(1)}96%{transform:scale(0)}100%{transform:scale(0)}}
+/* coins hopping peer to peer */
+.zip{left:0;top:var(--y);animation:zip var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes zip{from{transform:translateX(-15vw)}to{transform:translateX(115vw)}}
+.trail{width:60px;height:5px;border-radius:3px;background:linear-gradient(90deg,transparent,#e8973a);margin-right:-6px;opacity:.7}
+.row{display:flex;align-items:center}
+.fall{top:0;animation:fall var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes fall{from{transform:translateY(-15vh)}to{transform:translateY(112vh)}}
+.dot{width:10px;height:10px;border-radius:2px;background:var(--c);opacity:.7}
+.fl{top:0;animation:rise var(--t) linear infinite;animation-delay:var(--dl);opacity:.7}
+@keyframes rise{from{transform:translateY(110vh)}to{transform:translateY(-30vh)}}
+.sw{animation:sway 6s ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes sway{from{transform:translateX(-14px) rotate(-10deg)}to{transform:translateX(14px) rotate(10deg)}}
+/* ground strip + conveyor of node things */
+#table{left:0;bottom:0;width:100%;height:15%;border-top:5px solid #2b8a3e;background:repeating-linear-gradient(90deg,rgba(43,138,62,.22) 0 24px,transparent 24px 48px),#fbf3dc}
+.track{bottom:2.5%;left:0;display:flex;align-items:center;gap:22px;width:max-content;animation:scroll 90s linear infinite}
+@keyframes scroll{to{transform:translateX(-50%)}}
+svg.i{display:block}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.nd{transform:scale(1)}#net line{opacity:.6}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="coin" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#e8973a" stroke="#222" stroke-width="5"/><circle cx="32" cy="32" r="17" fill="none" stroke="#222" stroke-width="3" opacity=".5"/><path d="M20 22a14 14 0 0 1 9-7" stroke="#fff5cc" stroke-width="4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="cube" viewBox="0 0 64 64"><path d="M32 6 56 19 32 32 8 19Z" fill="#c8f0d0" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/><path d="M8 19v26l24 13V32Z" fill="#a8e6b3" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/><path d="M56 19v26L32 58V32Z" fill="#84d494" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/></symbol>
+<symbol id="link" viewBox="0 0 64 64"><rect x="4" y="20" width="34" height="24" rx="12" fill="none" stroke="#222" stroke-width="5" transform="rotate(-20 21 32)"/><rect x="26" y="20" width="34" height="24" rx="12" fill="none" stroke="#d9536a" stroke-width="5" transform="rotate(-20 43 32)"/></symbol>
+<symbol id="node" viewBox="0 0 64 64"><circle cx="32" cy="32" r="22" fill="#c8f0d0" stroke="#2b8a3e" stroke-width="5"/><circle cx="32" cy="32" r="8" fill="#ffd93b" stroke="#b8651b" stroke-width="3"/></symbol>
+<symbol id="pi" viewBox="0 0 64 64"><rect x="6" y="14" width="52" height="38" rx="5" fill="#84d494" stroke="#1f6b3a" stroke-width="4"/><rect x="22" y="22" width="16" height="16" rx="2" fill="#8f8aa8" stroke="#222" stroke-width="3"/><rect x="43" y="20" width="10" height="9" fill="#dcd8f0" stroke="#222" stroke-width="2.5"/><rect x="43" y="33" width="10" height="9" fill="#dcd8f0" stroke="#222" stroke-width="2.5"/><g fill="#ffd93b"><circle cx="12" cy="20" r="2"/><circle cx="18" cy="20" r="2"/><circle cx="12" cy="46" r="2"/><circle cx="18" cy="46" r="2"/></g></symbol>
+<symbol id="disk" viewBox="0 0 64 64"><rect x="8" y="14" width="48" height="38" rx="6" fill="#cfd3e0" stroke="#5b4d96" stroke-width="4"/><circle cx="26" cy="33" r="11" fill="#fbf8ec" stroke="#5b4d96" stroke-width="3"/><circle cx="26" cy="33" r="3" fill="#5b4d96"/><circle cx="48" cy="44" r="3" fill="#4ac26b"/></symbol>
+<symbol id="wifi" viewBox="0 0 64 64"><g fill="none" stroke="#2b8a3e" stroke-width="5" stroke-linecap="round"><path d="M10 26a32 32 0 0 1 44 0"/><path d="M18 35a21 21 0 0 1 28 0"/><path d="M26 44a10 10 0 0 1 12 0"/></g><circle cx="32" cy="52" r="4" fill="#ffd93b" stroke="#b8651b" stroke-width="2"/></symbol>
+<symbol id="seal" viewBox="0 0 64 64"><circle cx="32" cy="32" r="24" fill="#4ac26b" stroke="#1f6b3a" stroke-width="5"/><path d="M20 32 29 41 45 23" fill="none" stroke="#fff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="cloud" viewBox="0 0 96 48"><path d="M14 42a12 12 0 0 1-2-24 18 18 0 0 1 34-6 16 16 0 0 1 28 10 11 11 0 0 1-2 20Z" fill="#fbf8ec" stroke="#222" stroke-width="3.5" stroke-linejoin="round" opacity=".9"/></symbol>
+</defs></svg>
+
+<div id="rays" class="abs" aria-hidden="true"></div>
+<div id="sky" aria-hidden="true"></div>
+<div id="netwrap" aria-hidden="true"></div>
+
+<!-- big smiling home node -->
+<div id="sun" class="abs" aria-hidden="true">
+<svg class="crayon" viewBox="0 -20 200 220">
+  <g fill="none" stroke="#2b8a3e" stroke-width="7" stroke-linecap="round">
+    <path class="wv" d="M84.4 20.4A22 22 0 0 1 115.6 20.4"/>
+    <path class="wv" style="animation-delay:.35s" d="M74.5 10.5A36 36 0 0 1 125.5 10.5"/>
+    <path class="wv" style="animation-delay:.7s" d="M64.6 .6A50 50 0 0 1 135.4 .6"/>
+  </g>
+  <rect x="24" y="40" width="152" height="140" rx="26" fill="#c8f0d0" stroke="#222" stroke-width="7"/>
+  <circle cx="100" cy="38" r="6" fill="#ffd93b" stroke="#b8651b" stroke-width="3"/>
+  <circle class="led" cx="54" cy="60" r="6" fill="#ff4d5e" stroke="#222" stroke-width="3"/><circle class="led" style="animation-delay:.3s" cx="72" cy="60" r="6" fill="#4ac26b" stroke="#222" stroke-width="3"/><circle class="led" style="animation-delay:.6s" cx="90" cy="60" r="6" fill="#ffd93b" stroke="#222" stroke-width="3"/>
+  <g fill="#222"><circle class="eye" cx="76" cy="102" r="9"/><circle class="eye" cx="124" cy="102" r="9"/></g>
+  <circle cx="62" cy="122" r="9" fill="#ff8fa3" opacity=".6"/><circle cx="138" cy="122" r="9" fill="#ff8fa3" opacity=".6"/>
+  <path d="M80 124Q100 154 120 124Z" fill="#a3243a" stroke="#222" stroke-width="5" stroke-linejoin="round"/>
+  <g fill="#8f8aa8" stroke="#222" stroke-width="3"><rect x="44" y="164" width="22" height="10" rx="2"/><rect x="72" y="164" width="22" height="10" rx="2"/></g>
+  <g transform="translate(148 156)"><circle r="18" fill="#e8973a" stroke="#222" stroke-width="5"/><circle r="11" fill="none" stroke="#222" stroke-width="3" opacity=".5"/><path d="M-10 -8a13 13 0 0 1 8-6" stroke="#fff5cc" stroke-width="4" fill="none" stroke-linecap="round"/></g>
+</svg>
+</div>
+
+<div id="front" aria-hidden="true"></div>
+<div id="table" class="abs crayon" aria-hidden="true"></div>
+<div id="track" aria-hidden="true"></div>
+
+<svg style="display:none" aria-hidden="true">
+  <filter id="crayon-filter">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<script>
+(function(){
+  var sky='',fr='',i,s,u=function(n,w){return '<svg class="i crayon" width="'+w+'" height="'+w+'"><use href="#'+n+'"/></svg>'};
+  /* clouds */
+  for(i=0;i<3;i++)sky+='<div class="abs cl" style="--y:'+(5+i*11)+'%;--t:'+(90+i*25)+'s;--dl:-'+(i*38)+'s"><svg class="i crayon" width="'+(110+(i*37)%70)+'" height="'+(55+(i*19)%35)+'" viewBox="0 0 96 48"><use href="#cloud"/></svg></div>';
+  document.getElementById('sky').innerHTML=sky;
+
+  /* the revolution: nodes pop up around the home node and link to it and to each other */
+  var P=[[12,18],[24,36],[9,52],[30,12],[88,18],[76,38],[91,54],[70,10],[18,72],[82,72]],E=[[0,1],[1,2],[0,3],[4,5],[5,6],[4,7],[2,8],[6,9]],ln='',nd='',a,b;
+  P.forEach(function(p,k){ln+='<line x1="50" y1="46" x2="'+p[0]+'" y2="'+p[1]+'" style="animation-delay:'+(.6+k*.7).toFixed(1)+'s,0s"/>'});
+  E.forEach(function(e,k){a=P[e[0]];b=P[e[1]];ln+='<line x1="'+a[0]+'" y1="'+a[1]+'" x2="'+b[0]+'" y2="'+b[1]+'" style="animation-delay:'+(1.2+e[1]*.7).toFixed(1)+'s,0s"/>'});
+  P.forEach(function(p,k){nd+='<div class="abs" style="left:calc('+p[0]+'% - 26px);top:calc('+p[1]+'% - 26px)"><div class="nd" style="--dl:'+(.6+k*.7).toFixed(1)+'s">'+u('node',52)+'</div></div>'});
+  document.getElementById('netwrap').innerHTML='<svg id="net" class="crayon" viewBox="0 0 100 100" preserveAspectRatio="none">'+ln+'</svg>'+nd;
+
+  /* little nodes puffing from the big one */
+  [-14,0,14].forEach(function(o,k){fr+='<div class="abs ht" style="left:calc(50% + '+(o*1.6)+'vmin);top:22%;--dl:-'+(k*2)+'s">'+u(k==1?'pi':'node',30)+'</div>'});
+  /* coins hopping across, peer to peer */
+  for(i=0;i<5;i++)fr+='<div class="abs zip" style="--y:'+(14+i*11)+'%;--t:'+(5+(i*.9)%3)+'s;--dl:-'+(i*1.5)+'s"><div class="row"><div class="trail"></div>'+u('coin',30)+'</div></div>';
+  /* confetti */
+  var cc=['#d9536a','#f5c542','#2b8a3e','#5aa9e6'];
+  for(i=0;i<8;i++)fr+='<div class="abs fall dot" style="left:'+(4+i*12.5)+'%;--c:'+cc[i%4]+';--t:'+(24+(i*3)%10)+'s;--dl:-'+(i*3)+'s"></div>';
+  /* floating node stuff: board, disk, node, verified seal, block, signal */
+  var n=['pi','disk','node','seal','cube','wifi'];
+  for(i=0;i<n.length;i++){s=56+(i*17)%30;
+    fr+='<div class="abs fl" style="left:'+(6+i*16)+'%;--t:'+(44+(i*7)%16)+'s;--dl:-'+(i*5.3)+'s"><div class="sw">'+u(n[i],s)+'</div></div>'}
+  document.getElementById('front').innerHTML=fr;
+  /* conveyor on the ground */
+  var seq=['pi','link','node','disk','cube','seal'],t='';
+  for(i=0;i<12;i++)t+=u(seq[i%6],44);
+  document.getElementById('track').innerHTML='<div class="abs track">'+t+t+'</div>';
+})();
+</script>
+</body>
+</html>

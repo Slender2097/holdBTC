@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The First Halving</title>
+<style>
+/* Text-free 28s loop.
+   1) 50 coins drop in as a 10x5 block reward  2) a golden blade cuts it in half, 25 coins tumble away
+   3) the remaining 25 rise above a locked gear-and-padlock (math, code, consensus) while a fiat printer on the left spews endless paper */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#b3a9e6 0%,#dcbfe0 35%,#f5c6b0 68%,#f8dd9c 100%)}
+#sky{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.mote{position:absolute;bottom:-20px;left:var(--x);width:var(--s);height:var(--s);background:#ffd45a;opacity:.4;border-radius:2px;animation:mote var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes mote{from{transform:translateY(0) rotate(0)}to{transform:translateY(-112vh) rotate(200deg)}}
+.st{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);background:#fff6cf;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);animation:tw var(--t) ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes tw{from{opacity:.15;transform:scale(.6)}to{opacity:.9;transform:scale(1.1)}}
+#stage{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.k{animation-duration:28s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+.fb{transform-box:fill-box;transform-origin:center}
+.rot{transform-box:fill-box;transform-origin:center;animation:rot var(--p,24s) linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pl 2.6s ease-out infinite}
+@keyframes pl{from{opacity:.7;transform:scale(1)}to{opacity:0;transform:scale(1.7)}}
+.bill{opacity:0;animation:bill 4.2s ease-out infinite;animation-delay:var(--dl)}
+@keyframes bill{0%{opacity:0;transform:translate(0,0) rotate(0)}8%{opacity:1}45%{transform:translate(calc(var(--dx)*.6),-230px) rotate(calc(var(--r)*.5))}100%{opacity:0;transform:translate(var(--dx),80px) rotate(var(--r))}}
+.inf{transform-box:fill-box;transform-origin:center;animation:inf 1.6s ease-in-out infinite alternate}
+@keyframes inf{from{transform:scale(.9)}to{transform:scale(1.12)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.k{opacity:1!important}.beam{display:none}}
+</style>
+<style id="kf"></style>
+</head>
+<body>
+<div id="sky" aria-hidden="true"></div>
+<svg id="stage" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+<defs>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <radialGradient id="glow"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#f0a92e"/></linearGradient>
+  <symbol id="coin" viewBox="-20 -20 40 40"><circle r="18" fill="url(#gold)" stroke="#8a5a00" stroke-width="3.5"/><circle r="12" fill="none" stroke="#8a5a00" stroke-width="2" opacity=".55"/><text y="7" text-anchor="middle" font-size="20" font-weight="900" fill="#7a4a00" font-family="Arial,sans-serif">₿</text><path d="M-11 -8a13 13 0 0 1 8-7" stroke="#fff6cf" stroke-width="3" fill="none" stroke-linecap="round"/></symbol>
+</defs>
+
+<!-- mountains + ground -->
+<path d="M-100 470 50 340 200 430 340 310 500 440 660 340 800 440 940 320 1100 470Z" fill="#a89bd4" opacity=".7"/>
+<g filter="url(#crayon)"><rect x="-50" y="470" width="1100" height="120" fill="#7f70b8" stroke="#5b4d96" stroke-width="6"/></g>
+<path d="M-50 520H1050" stroke="#c9bdf0" stroke-width="5" stroke-dasharray="70 60" opacity=".6"/>
+
+<!-- phase 3 backdrop: fiat printer (left) vs. locked code (right) -->
+<g class="k" style="animation-name:ph3" opacity="0">
+  <path d="M500 60V470" stroke="#5b4d96" stroke-width="5" stroke-dasharray="14 16" opacity=".5"/>
+  <!-- fiat printing press -->
+  <g filter="url(#crayon)">
+    <rect x="150" y="370" width="200" height="100" rx="8" fill="#8f8aa8" stroke="#3d3660" stroke-width="6"/>
+    <rect x="185" y="352" width="130" height="20" rx="4" fill="#3d3660"/>
+    <rect x="170" y="395" width="90" height="50" rx="6" fill="#b9b4d2" stroke="#3d3660" stroke-width="4"/>
+    <g transform="translate(305 420)"><g class="rot" style="--p:3s"><circle r="24" fill="#d6d3e6" stroke="#3d3660" stroke-width="5"/><path d="M-24 0H24M0 -24V24" stroke="#3d3660" stroke-width="5"/></g></g>
+  </g>
+  <g id="bills"></g>
+  <g transform="translate(250 130)"><g class="inf"><path d="M-46 0C-46 -34 -12 -34 0 0S46 34 46 0 12 -34 0 0-46 34-46 0Z" fill="none" stroke="#ff6b6b" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/></g></g>
+  <!-- locked code: gear + padlock -->
+  <circle class="pulse" cx="720" cy="350" r="110" fill="none" stroke="#ffd45a" stroke-width="6"/>
+  <g transform="translate(720 380)" filter="url(#crayon)">
+    <g class="rot"><circle r="100" fill="none" stroke="#e8973a" stroke-width="18" stroke-dasharray="9.2 9.13" opacity=".55"/><circle r="84" fill="none" stroke="#e8973a" stroke-width="4" opacity=".5"/></g>
+    <path d="M-36 -50V-96a36 36 0 0 1 72 0V-50" fill="none" stroke="#8a5a00" stroke-width="18" stroke-linecap="round"/>
+    <rect x="-64" y="-56" width="128" height="106" rx="16" fill="url(#gold)" stroke="#8a5a00" stroke-width="7"/>
+    <circle cy="-14" r="13" fill="#4c4180" stroke="#2b2350" stroke-width="4"/><rect x="-5" y="-8" width="10" height="30" rx="4" fill="#4c4180" stroke="#2b2350" stroke-width="4"/>
+    <path d="M-48 -42a20 20 0 0 1 14-6" stroke="#fff6cf" stroke-width="5" fill="none" stroke-linecap="round"/>
+  </g>
+</g>
+
+<!-- golden blade -->
+<g class="k fb beam" style="animation-name:beam" opacity="0"><rect x="482" y="110" width="40" height="300" rx="20" fill="url(#glow)"/><rect x="499" y="120" width="6" height="280" rx="3" fill="#fff6cf"/></g>
+
+<!-- the block reward: 10 columns x 5 coins -->
+<g id="keep" class="k" style="animation-name:keep;transform-origin:362px 272px"><g id="cols"></g></g>
+<g id="dust"></g>
+</svg>
+
+<script>
+(function(){
+  var D=28,i,c,r,$=function(id){return document.getElementById(id)};
+  function pc(s){return (s/D*100).toFixed(3)+'%'}
+  function kf(n,st){var l=st[st.length-1];if(l[0]<D)st=st.concat([[D,l[1]]]);return '@keyframes '+n+'{'+st.map(function(x){return pc(x[0])+'{'+x[1]+'}'}).join('')+'}'}
+  var seed=11;function rnd(){seed=(seed*9301+49297)%233280;return seed/233280}
+
+  var sk='';
+  for(i=0;i<16;i++)sk+='<div class="st" style="--x:'+(rnd()*96)+'%;--y:'+(rnd()*45)+'%;--s:'+(8+rnd()*12)+'px;--t:'+(2+rnd()*3)+'s;--dl:-'+(rnd()*4)+'s"></div>';
+  for(i=0;i<14;i++)sk+='<div class="mote" style="--x:'+(rnd()*98)+'%;--s:'+(5+rnd()*6)+'px;--t:'+(22+rnd()*20)+'s;--dl:-'+(rnd()*40)+'s"></div>';
+  $('sky').innerHTML=sk;
+
+  var css=
+   kf('ph3',[[0,'opacity:0'],[9.3,'opacity:0'],[10.3,'opacity:1'],[26.9,'opacity:1'],[27.7,'opacity:0']])+
+   kf('beam',[[0,'opacity:0;transform:scaleY(.1)'],[5.5,'opacity:0;transform:scaleY(.1)'],[5.9,'opacity:1;transform:scaleY(1)'],[7,'opacity:0;transform:scaleY(1.05)']])+
+   kf('keep',[[0,'transform:none'],[7,'transform:none'],[8.3,'transform:translate(138px,0)'],[10,'transform:translate(138px,0)'],[11.6,'transform:translate(358px,-122px) scale(.55)']]);
+
+  /* columns of coins: drop in one by one, then the right half is cut away */
+  var h='';
+  for(c=0;c<10;c++){
+    var t=1+c*.4,f=6+(c-5)*.08,st=[[0,'opacity:0;transform:translateY(-70px)'],[t,'opacity:0;transform:translateY(-70px)'],[t+.35,'opacity:1;transform:translateY(8px)'],[t+.6,'opacity:1;transform:none']];
+    if(c>4)st.push([f,'opacity:1;transform:none'],[f+.9,'opacity:0;transform:translate('+((c-4)*16)+'px,300px) rotate('+((c-4)*22)+'deg)']);
+    else st.push([27,'opacity:1;transform:none'],[27.7,'opacity:0;transform:none']);
+    css+=kf('col'+c,st);
+    h+='<g class="k fb" style="animation-name:col'+c+';opacity:0">';
+    for(r=0;r<5;r++)h+='<use href="#coin" x="'+(250+c*56-22)+'" y="'+(160+r*56-22)+'" width="44" height="44"/>';
+    h+='</g>';
+  }
+  $('cols').innerHTML=h;
+
+  /* gold sparks at the cut */
+  var dt='';for(i=0;i<16;i++){var s=5+rnd()*7;
+    css+=i?'':kf('sp',[[0,'opacity:0;transform:translate(0,0)'],[5.9,'opacity:0;transform:translate(0,0)'],[6.1,'opacity:1'],[7.2,'opacity:0;transform:translate(var(--dx),var(--dy)) rotate(180deg)']]);
+    dt+='<rect class="k fb" x="'+(496+rnd()*8)+'" y="'+(130+rnd()*260)+'" width="'+s+'" height="'+s+'" fill="#ffd45a" stroke="#b9770e" stroke-width="1.5" style="animation-name:sp;animation-timing-function:ease-out;--dx:'+(-70+rnd()*140)+'px;--dy:'+(-30+rnd()*90)+'px;opacity:0"/>'}
+  $('dust').innerHTML=dt;
+
+  /* endless fiat bills */
+  var b='';for(i=0;i<12;i++)
+    b+='<g transform="translate(250 350)"><g class="bill fb" style="--dx:'+(-150+rnd()*300)+'px;--r:'+(-160+rnd()*320)+'deg;--dl:-'+(i*.35).toFixed(2)+'s"><rect x="-22" y="-12" width="44" height="24" rx="3" fill="#9be0ab" stroke="#2f6b45" stroke-width="3"/><circle r="6" fill="#5fb67a" stroke="#2f6b45" stroke-width="2"/></g></g>';
+  $('bills').innerHTML=b;
+
+  $('kf').textContent=css;
+})();
+</script>
+</body>
+</html>

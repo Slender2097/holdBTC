@@ -30,6 +30,12 @@ body.game-active {
   touch-action: none;
 }
 
+/* Header stays a fixed height so menus never shove the page */
+.site-header {
+  height: 6rem;
+}
+
+/* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 5px;
   height: 5px;
@@ -49,6 +55,7 @@ canvas {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Alien panel style */
 .alien-panel {
   background: linear-gradient(160deg, #0c1220 0%, #070b14 100%);
   border: 1px solid #1a2740;
@@ -63,6 +70,7 @@ canvas {
   text-shadow: 0 0 12px rgba(0, 240, 255, 0.5);
 }
 
+/* Subtle grid background */
 .alien-grid {
   background-image:
     linear-gradient(rgba(0, 240, 255, 0.03) 1px, transparent 1px),
@@ -70,7 +78,7 @@ canvas {
   background-size: 40px 40px;
 }
 
-/* Ranked game frame — bright gold border */
+/* Ranked game frame — bright gold border (same energy as pay button) */
 .ranked-game-frame {
   position: relative;
   padding: 2px;
@@ -116,4 +124,120 @@ canvas {
   to {
     transform: rotate(360deg);
   }
+}
+
+/* Year clips */
+.year-stage {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  background: #d4d0bd;
+}
+.wp08,
+.wp09 {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.wp08 {
+  background:
+    radial-gradient(circle at 85% 12%, rgba(217, 83, 106, 0.16), transparent 45%),
+    radial-gradient(circle at 10% 90%, rgba(232, 151, 58, 0.18), transparent 50%),
+    linear-gradient(#d4d0bd, #c8c5b6);
+}
+.wp09 {
+  background:
+    radial-gradient(circle at 85% 12%, rgba(217, 83, 106, 0.14), transparent 45%),
+    linear-gradient(#d4d0bd, #c8c5b6);
+}
+.wp08-defs,
+.wp09-defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+.wp08-crayon { filter: url(#wp08-crayon-filter); }
+.wp09-crayon { filter: url(#wp09-crayon-filter); }
+.wp08-bg,
+.wp09-bg {
+  position: absolute;
+  inset: 0;
+  opacity: 0.42;
+}
+.wp09-dawn {
+  position: absolute;
+  left: 50%;
+  bottom: -70%;
+  width: 130vmax;
+  height: 130vmax;
+  margin-left: -65vmax;
+  background: radial-gradient(circle, rgba(255, 214, 102, 0.5), rgba(255, 214, 102, 0) 55%);
+  animation: wp09-glow 9s ease-in-out infinite alternate;
+}
+@keyframes wp09-glow {
+  from { opacity: 0.55; transform: scale(1); }
+  to { opacity: 1; transform: scale(1.08); }
+}
+.wp08-fl,
+.wp09-fl {
+  position: absolute;
+  top: 0;
+  animation: year-rise var(--t) linear infinite;
+  animation-delay: var(--dl);
+}
+@keyframes year-rise {
+  from { transform: translateY(110%); }
+  to { transform: translateY(-30%); }
+}
+.wp08-sw,
+.wp09-sw {
+  animation: year-sway 7s ease-in-out infinite alternate;
+  animation-delay: var(--dl);
+}
+@keyframes year-sway {
+  from { transform: translateX(-14px) rotate(-8deg); }
+  to { transform: translateX(14px) rotate(8deg); }
+}
+.wp08-track,
+.wp09-track {
+  position: absolute;
+  bottom: 10px;
+  left: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: max-content;
+  animation: year-scroll 70s linear infinite;
+  opacity: 0.85;
+}
+.wp08-track-copy,
+.wp09-track-copy {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+@keyframes year-scroll {
+  to { transform: translateX(-50%); }
+}
+.wp08-i,
+.wp09-i {
+  display: block;
+}
+@media (prefers-reduced-motion: reduce) {
+  .wp08 *,
+  .wp09 * { animation: none !important; }
+}
+
+.year-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: #d4d0bd;
 }

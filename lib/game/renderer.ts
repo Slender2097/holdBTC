@@ -1,5 +1,6 @@
 import { getYearTheme } from "./constants";
 import { getYearFromScore } from "./engine";
+import { hasHtmlYearBg } from "./yearClips";
 import type { Bird, Candlestick, GameState } from "./types";
 
 const PAPER = "#f3edd4";
@@ -21,6 +22,11 @@ export function drawBackground(
 ) {
   const year = getYearFromScore(state.score);
   const theme = getYearTheme(year);
+
+  if (hasHtmlYearBg(year)) {
+    ctx.clearRect(0, 0, width, height);
+    return;
+  }
 
   ctx.fillStyle = PAPER;
   ctx.fillRect(0, 0, width, height);

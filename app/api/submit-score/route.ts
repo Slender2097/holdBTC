@@ -33,7 +33,10 @@ export async function POST(req: NextRequest) {
     flaps,
     width: Number(body.width),
     height: Number(body.height),
-    maxFrames: Math.min(MAX_REPLAY_FRAMES, Number(body.frames) || MAX_REPLAY_FRAMES),
+    maxFrames: Math.min(
+      MAX_REPLAY_FRAMES,
+      Math.max(Number(body.frames) || 0, flaps[flaps.length - 1] || 0) + 180
+    ),
   });
 
   if (!replay.dead || replay.score <= 0) {

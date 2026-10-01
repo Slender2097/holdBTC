@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Sovereign Domino Effect</title>
+<style>
+/* Text-free 28s loop.
+   1) a golden coin drops in and tips the first domino while the price line shoots up
+   2) seven national "treasury" dominoes fall one after another, each lighting up with a golden coin
+   3) a giant Bitcoin sun rises and every treasury streams coins up into it */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#b3a9e6 0%,#dcbfe0 35%,#f5c6b0 68%,#f8dd9c 100%)}
+#sky{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.mote{position:absolute;bottom:-20px;left:var(--x);width:var(--s);height:var(--s);background:#ffd45a;opacity:.4;border-radius:2px;animation:mote var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes mote{from{transform:translateY(0) rotate(0)}to{transform:translateY(-112vh) rotate(200deg)}}
+.st{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);background:#fff6cf;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);animation:tw var(--t) ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes tw{from{opacity:.15;transform:scale(.6)}to{opacity:.9;transform:scale(1.1)}}
+#stage{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.k{animation-duration:28s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+.fb{transform-box:fill-box;transform-origin:center}
+.rot{transform-box:fill-box;transform-origin:center;animation:rot var(--p,30s) linear infinite}
+@keyframes rot{to{transform:rotate(360deg)}}
+.zz{opacity:0;animation:zz 2.6s ease-in-out infinite;animation-delay:var(--dl)}
+@keyframes zz{0%{opacity:0;transform:translate(0,0) scale(.6)}15%{opacity:1}85%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy)) scale(.9)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.k{opacity:1!important}}
+</style>
+<style id="kf"></style>
+</head>
+<body>
+<div id="sky" aria-hidden="true"></div>
+<svg id="stage" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+<defs>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <radialGradient id="glow"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#f0a92e"/></linearGradient>
+  <symbol id="coin" viewBox="-20 -20 40 40"><circle r="18" fill="url(#gold)" stroke="#8a5a00" stroke-width="3.5"/><circle r="12" fill="none" stroke="#8a5a00" stroke-width="2" opacity=".55"/><text y="7" text-anchor="middle" font-size="20" font-weight="900" fill="#7a4a00" font-family="Arial,sans-serif">₿</text><path d="M-11 -8a13 13 0 0 1 8-7" stroke="#fff6cf" stroke-width="3" fill="none" stroke-linecap="round"/></symbol>
+</defs>
+
+<!-- mountains + ground -->
+<path d="M-100 470 50 340 200 430 340 310 500 440 660 340 800 440 940 320 1100 470Z" fill="#a89bd4" opacity=".7"/>
+<g filter="url(#crayon)"><rect x="-50" y="470" width="1100" height="120" fill="#7f70b8" stroke="#5b4d96" stroke-width="6"/></g>
+<path d="M-50 520H1050" stroke="#c9bdf0" stroke-width="5" stroke-dasharray="70 60" opacity=".6"/>
+
+<!-- the giant Bitcoin sun -->
+<g transform="translate(500 190)"><g class="k fb" style="animation-name:sun" opacity="0">
+  <circle r="240" fill="url(#glow)"/>
+  <g class="rot" id="rays"></g>
+  <g filter="url(#crayon)"><use href="#coin" x="-90" y="-90" width="180" height="180"/></g>
+</g></g>
+
+<!-- the price explodes -->
+<path class="k" style="animation-name:ch" pathLength="1" stroke-dasharray="1" stroke-dashoffset="1" d="M30 455C300 445 520 425 640 335S860 120 975 40" fill="none" stroke="#2b8a3e" stroke-width="9" stroke-linecap="round" opacity=".55" filter="url(#crayon)"/>
+
+<!-- seven treasuries -->
+<g class="k" style="animation-name:dg" opacity="0"><g id="doms"></g></g>
+<g class="k" style="animation-name:stg" opacity="0"><g id="stream"></g></g>
+
+<!-- the coin that starts it all -->
+<g transform="translate(30 446)"><g class="k" style="animation-name:push" opacity="0"><use href="#coin" x="-24" y="-24" width="48" height="48"/></g></g>
+<g id="sparks"></g>
+</svg>
+
+<script>
+(function(){
+  var D=28,i,$=function(id){return document.getElementById(id)};
+  function pc(s){return (s/D*100).toFixed(3)+'%'}
+  function kf(n,st){var l=st[st.length-1];if(l[0]<D)st=st.concat([[D,l[1]]]);return '@keyframes '+n+'{'+st.map(function(x){return pc(x[0])+'{'+x[1]+'}'}).join('')+'}'}
+  var seed=25;function rnd(){seed=(seed*9301+49297)%233280;return seed/233280}
+  var sk='';
+  for(i=0;i<16;i++)sk+='<div class="st" style="--x:'+(rnd()*96)+'%;--y:'+(rnd()*45)+'%;--s:'+(8+rnd()*12)+'px;--t:'+(2+rnd()*3)+'s;--dl:-'+(rnd()*4)+'s"></div>';
+  for(i=0;i<14;i++)sk+='<div class="mote" style="--x:'+(rnd()*98)+'%;--s:'+(5+rnd()*6)+'px;--t:'+(22+rnd()*20)+'s;--dl:-'+(rnd()*40)+'s"></div>';
+  $('sky').innerHTML=sk;
+
+  var css=
+   kf('sun',[[0,'opacity:0;transform:translateY(170px) scale(.3)'],[11,'opacity:0;transform:translateY(170px) scale(.3)'],[13.2,'opacity:1;transform:translateY(0) scale(1.15)'],[14.2,'opacity:1;transform:translateY(0) scale(1)'],[27,'opacity:1;transform:translateY(0) scale(1)'],[27.7,'opacity:0']])+
+   kf('ch',[[0,'stroke-dashoffset:1;opacity:.55'],[3,'stroke-dashoffset:1'],[12,'stroke-dashoffset:0;opacity:.55'],[27,'stroke-dashoffset:0;opacity:.55'],[27.7,'stroke-dashoffset:0;opacity:0']])+
+   kf('dg',[[0,'opacity:0'],[.5,'opacity:1'],[27,'opacity:1'],[27.7,'opacity:0']])+
+   kf('stg',[[0,'opacity:0'],[15,'opacity:0'],[16,'opacity:1'],[27,'opacity:1'],[27.7,'opacity:0']])+
+   kf('push',[[0,'opacity:0;transform:translate(0,-420px)'],[1.2,'opacity:0;transform:translate(0,-420px)'],[1.4,'opacity:1;transform:translate(0,-420px)'],[3,'opacity:1;transform:translate(0,0)'],[3.4,'opacity:1;transform:translate(0,-34px)'],[3.8,'opacity:1;transform:translate(0,0)'],[5.1,'opacity:1;transform:translate(36px,0) rotate(200deg)'],[5.5,'opacity:0;transform:translate(46px,0) rotate(240deg)']]);
+
+  /* sun rays */
+  var r='';for(i=0;i<16;i++){var a=i*Math.PI/8;r+='<path d="M'+(Math.cos(a)*115).toFixed(0)+' '+(Math.sin(a)*115).toFixed(0)+'L'+(Math.cos(a)*170).toFixed(0)+' '+(Math.sin(a)*170).toFixed(0)+'" stroke="#ffe27a" stroke-width="'+(i%2?6:11)+'" stroke-linecap="round" opacity=".8"/>'}
+  $('rays').innerHTML=r;
+
+  /* the dominoes: flag band on top, coin socket below; each falls, then its coin lights up */
+  var col=['#ff6b6b','#5aa9e6','#84d494','#ffb84a','#c9a2ff','#5ce0c6','#ff8fa3'],h='',sp='',st='';
+  for(i=0;i<7;i++){
+    var x=100+i*130,t0=5+i*.85,ang=i==6?76:68;
+    css+=kf('d'+i,[[0,'transform:none'],[t0,'transform:none'],[t0+.8,'transform:rotate('+ang+'deg)']]);
+    css+=kf('l'+i,[[0,'opacity:0;transform:scale(0)'],[t0+.2,'opacity:0;transform:scale(0)'],[t0+.6,'opacity:1;transform:scale(1.5)'],[t0+1.1,'opacity:1;transform:scale(1)'],[27,'opacity:1;transform:scale(1)'],[27.7,'opacity:0']]);
+    css+=kf('s'+i,[[0,'opacity:0;transform:scale(.2)'],[t0+.6,'opacity:0;transform:scale(.2)'],[t0+.9,'opacity:1;transform:scale(1.6) rotate(40deg)'],[t0+1.6,'opacity:0;transform:scale(.8) rotate(90deg)']]);
+    h+='<g transform="translate('+x+' 470)" filter="url(#crayon)"><g class="k" style="animation-name:d'+i+';transform-origin:28px 0">'+
+       '<rect x="-28" y="-150" width="56" height="150" rx="7" fill="#f4f1e2" stroke="#231d3d" stroke-width="5"/>'+
+       '<rect x="-25" y="-147" width="50" height="62" rx="5" fill="'+col[i]+'" opacity=".9"/><path d="M-16 -128H16M-16 -112H8" stroke="#fff" stroke-width="5" stroke-linecap="round" opacity=".7"/>'+
+       '<path d="M-28 -78H28" stroke="#231d3d" stroke-width="4"/><circle cy="-40" r="20" fill="#8f8aa8" stroke="#3d3660" stroke-width="4"/>'+
+       '<g class="k fb" style="animation-name:l'+i+'" opacity="0"><circle cy="-40" r="42" fill="url(#glow)"/><use href="#coin" x="-19" y="-59" width="38" height="38"/></g></g></g>';
+    sp+='<g transform="translate('+(x+70)+' 380)"><path class="k fb" style="animation-name:s'+i+'" d="M0 -16 4 -4 16 0 4 4 0 16-4 4-16 0-4 -4Z" fill="#fff3b8" stroke="#e8973a" stroke-width="2.5" stroke-linejoin="round" opacity="0"/></g>';
+    [0,1].forEach(function(k){st+='<g transform="translate('+(x+40)+' 360)"><g class="zz" style="--dx:'+(500-x-40)+'px;--dy:-170px;--dl:-'+(i*.37+k*1.3).toFixed(2)+'s"><use href="#coin" x="-12" y="-12" width="24" height="24"/></g></g>'});
+  }
+  $('doms').innerHTML=h;$('sparks').innerHTML=sp;$('stream').innerHTML=st;
+  $('kf').textContent=css;
+})();
+</script>
+</body>
+</html>

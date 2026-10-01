@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import GameCanvas from "@/components/GameCanvas";
 import Leaderboard from "@/components/Leaderboard";
-import NostrLogin from "@/components/NostrLogin";
+import Header from "@/components/Header";
 import PaymentButton from "@/components/PaymentButton";
 import PaymentModal from "@/components/PaymentModal";
 import GameOverModal from "@/components/GameOverModal";
@@ -147,32 +147,14 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="border-b border-alien-border/80 bg-alien-deep/90 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg bg-alien-panel border border-alien-cyan/30 flex items-center justify-center shadow-glow">
-              <span className="text-alien-cyan font-bold text-sm tracking-tight">HB</span>
-            </div>
-            <div>
-              <h1 className="font-bold text-lg tracking-widest leading-none text-white">
-                HOLD<span className="text-alien-cyan">BTC</span>
-              </h1>
-              <p className="text-[10px] text-alien-muted tracking-[0.2em] uppercase mt-0.5">
-                holdbtc.io
-              </p>
-            </div>
-          </div>
-
-          <NostrLogin
-            user={nostr.user}
-            loading={nostr.loading}
-            error={nostr.error}
-            onLoginNip07={nostr.loginWithNip07}
-            onLoginNsec={nostr.loginWithNsec}
-            onLogout={nostr.logout}
-          />
-        </div>
-      </header>
+      <Header
+        user={nostr.user}
+        loading={nostr.loading}
+        error={nostr.error}
+        onLoginNip07={nostr.loginWithNip07}
+        onLoginNsec={nostr.loginWithNsec}
+        onLogout={nostr.logout}
+      />
 
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
         <div className="flex-1 flex flex-col gap-4 min-w-0">
@@ -209,7 +191,7 @@ export default function HomePage() {
             </p>
           )}
 
-          <div className="relative rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh]">
+          <div className="relative rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh] max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:h-[100dvh] max-lg:max-h-none max-lg:w-screen max-lg:rounded-none max-lg:border-0">
             <div className="h-full w-full">
               <GameCanvas
                 key={`${gameKey}-${payment.hasPaid ? payment.rankedSeed ?? "r" : "free"}`}

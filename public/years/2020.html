@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Money Printer vs The Halving</title>
+<style>
+/* Text-free 16s loop, one idea:  the dollar printer never stops (bills pile up, the balloon swells)
+   ...then a sword cuts the Bitcoin in half: scarce, tiny, shining. */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#cfe8f0 0%,#fdf0c8 55%,#f9d98b 100%)}
+.k{animation-duration:16s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+.fb{transform-box:fill-box;transform-origin:center}
+#tint{position:fixed;inset:0;pointer-events:none;opacity:0;background:linear-gradient(rgba(120,160,120,.28),transparent 75%);animation-name:tint}
+#sky{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.cl{position:absolute;top:var(--y);left:0;animation:cloud var(--t) linear infinite;animation-delay:var(--dl);opacity:.75}
+.cl path{animation:cloudc 16s ease-in-out infinite}
+@keyframes cloud{from{transform:translateX(-25vw)}to{transform:translateX(115vw)}}
+.sb{position:absolute;top:-40px;left:var(--x);opacity:.5;animation:sfall var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes sfall{from{transform:translateY(0) rotate(-20deg)}50%{transform:translateY(55vh) rotate(25deg)}to{transform:translateY(112vh) rotate(-20deg)}}
+#sun{position:fixed;right:3vw;top:4vh;width:clamp(90px,16vmin,170px);pointer-events:none;animation:sunb 4s ease-in-out infinite alternate}
+@keyframes sunb{from{transform:translateY(0) rotate(-4deg)}to{transform:translateY(-8px) rotate(4deg)}}
+#stage{position:fixed;left:0;bottom:0;width:100%;pointer-events:none}
+.shake{animation:shake .1s ease-in-out infinite alternate}
+@keyframes shake{from{transform:translate(-1.5px,0)}to{transform:translate(1.5px,1.5px)}}
+.gear{transform-box:fill-box;transform-origin:center;animation:gear .6s linear infinite}
+@keyframes gear{to{transform:rotate(360deg)}}
+.pj{animation:pj .16s steps(2) infinite alternate}
+@keyframes pj{from{transform:translate(-4px,2px)}to{transform:translate(4px,-3px)}}
+.bill{animation:fly 2.2s linear infinite;animation-delay:var(--dl)}
+@keyframes fly{0%{opacity:0;transform:translate(0,0) rotate(0)}8%{opacity:1}45%{opacity:1;transform:translate(calc(var(--dx)*.55),-80px) rotate(calc(var(--r)*.5))}88%{opacity:1;transform:translate(var(--dx),var(--dy)) rotate(var(--r))}100%{opacity:0;transform:translate(var(--dx),var(--dy)) rotate(var(--r))}}
+.brr{animation:brr .25s steps(2) infinite}
+@keyframes brr{50%{opacity:.15}}
+.wob{transform-box:fill-box;transform-origin:50% 100%;animation:wob 1.6s ease-in-out infinite alternate}
+@keyframes wob{from{transform:rotate(-4deg)}to{transform:rotate(4deg)}}
+.rays{transform-box:fill-box;transform-origin:center;animation:gear 14s linear infinite}
+.tw{transform-box:fill-box;transform-origin:center;animation:tw var(--t) ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes tw{from{opacity:.3;transform:scale(.6)}to{opacity:1;transform:scale(1.2) rotate(25deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+<style id="kf"></style>
+<style id="camkf"></style>
+</head>
+<body>
+<div id="tint" class="k" aria-hidden="true"></div>
+<div id="sky" aria-hidden="true"></div>
+
+<!-- the sun: shocked while the printer runs, happy once the coin shines -->
+<svg id="sun" viewBox="0 0 200 200" aria-hidden="true">
+  <g id="rays" stroke="#ffb84a" stroke-width="9" stroke-linecap="round"></g>
+  <circle cx="100" cy="112" r="70" fill="#ffd45a" stroke="#e8973a" stroke-width="7"/>
+  <g class="k" style="animation-name:sunA"><circle cx="76" cy="104" r="15" fill="#fff" stroke="#5a2f00" stroke-width="4"/><circle cx="124" cy="104" r="15" fill="#fff" stroke="#5a2f00" stroke-width="4"/><circle cx="76" cy="106" r="5" fill="#222"/><circle cx="124" cy="106" r="5" fill="#222"/><ellipse cx="100" cy="150" rx="14" ry="18" fill="#a3243a" stroke="#5a2f00" stroke-width="5"/><path d="M150 76q-9 14 0 22 9-8 0-22Z" fill="#8fd4ff" stroke="#3a86c0" stroke-width="3"/></g>
+  <g class="k" style="animation-name:sunB" opacity="0"><path d="M60 108Q76 90 92 108M108 108Q124 90 140 108" fill="none" stroke="#5a2f00" stroke-width="7" stroke-linecap="round"/><circle cx="60" cy="130" r="10" fill="#ff8fa3" opacity=".6"/><circle cx="140" cy="130" r="10" fill="#ff8fa3" opacity=".6"/><path d="M70 134Q100 176 130 134Z" fill="#a3243a" stroke="#5a2f00" stroke-width="6" stroke-linejoin="round"/></g>
+</svg>
+
+<svg id="stage" aria-hidden="true" preserveAspectRatio="xMidYMid meet">
+<defs>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <radialGradient id="glow"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient>
+  <clipPath id="clipL"><rect x="-100" y="-100" width="100" height="200"/></clipPath>
+  <clipPath id="clipR"><rect x="0" y="-100" width="100" height="200"/></clipPath>
+  <symbol id="bill" viewBox="-36 -20 72 40"><rect x="-34" y="-18" width="68" height="36" rx="5" fill="#8fe0a0" stroke="#2b8a3e" stroke-width="4"/><circle r="11" fill="none" stroke="#2b8a3e" stroke-width="3"/><text y="6" text-anchor="middle" font-size="17" font-weight="900" fill="#2b8a3e" font-family="Arial,sans-serif">$</text><circle cx="-26" cy="-10" r="3" fill="#2b8a3e"/><circle cx="26" cy="10" r="3" fill="#2b8a3e"/></symbol>
+  <g id="coinG"><circle r="70" fill="#e8973a" stroke="#222" stroke-width="7"/><circle r="50" fill="none" stroke="#222" stroke-width="4" opacity=".5"/><text y="24" text-anchor="middle" font-size="76" font-weight="900" fill="#222" font-family="Arial,sans-serif">₿</text><path d="M-44 -30a52 52 0 0 1 30 -26" stroke="#fff5cc" stroke-width="9" fill="none" stroke-linecap="round"/></g>
+</defs>
+
+<g id="cam" class="k" style="animation-name:cam"><g class="k" style="animation-name:stg" opacity="0">
+
+  <!-- ground -->
+  <path d="M-900 430-700 340-500 410-300 330-80 420 140 350 330 430 560 340 800 430 1030 350 1250 430 1500 340 1720 420 1950 360 2150 430 2400 350 2700 430Z" fill="#bfe3c0" opacity=".75"/>
+  <g filter="url(#crayon)"><rect x="-900" y="430" width="3600" height="200" fill="#8fd18f" stroke="#4a9a4a" stroke-width="6"/></g>
+  <path d="M-900 490H2700" stroke="#e8f7d0" stroke-width="5" stroke-dasharray="70 60" opacity=".7"/>
+
+  <!-- LEFT: the money printer that never stops -->
+  <g transform="translate(200 430)"><g class="shake">
+    <rect x="-84" y="-22" width="26" height="22" rx="6" fill="#4b5468"/><rect x="58" y="-22" width="26" height="22" rx="6" fill="#4b5468"/>
+    <path d="M-70 -150-50 -192H50L70 -150Z" fill="#c9d0e0" stroke="#4b5468" stroke-width="6" stroke-linejoin="round"/>
+    <g class="gear"><circle cy="-176" r="20" fill="#ffd45a" stroke="#b9770e" stroke-width="5"/><path d="M-26 -176H26M0 -202V-150" stroke="#b9770e" stroke-width="5" stroke-linecap="round"/></g>
+    <rect x="-110" y="-150" width="220" height="132" rx="16" fill="#9aa3b8" stroke="#4b5468" stroke-width="6"/>
+    <rect x="-86" y="-134" width="148" height="86" rx="10" fill="#dfe5f2" stroke="#4b5468" stroke-width="4"/>
+    <circle cx="-48" cy="-102" r="17" fill="#fff" stroke="#4b5468" stroke-width="4"/><circle cx="2" cy="-102" r="17" fill="#fff" stroke="#4b5468" stroke-width="4"/>
+    <g class="pj"><circle cx="-48" cy="-102" r="8" fill="#222"/><circle cx="2" cy="-102" r="8" fill="#222"/></g>
+    <path d="M-54 -74Q-24 -50 6 -74Z" fill="#a3243a" stroke="#4b5468" stroke-width="4" stroke-linejoin="round"/>
+    <rect x="76" y="-90" width="34" height="20" rx="4" fill="#222"/>
+    <g class="brr" stroke="#4b5468" stroke-width="6" stroke-linecap="round"><path d="M120 -112l34 -12M120 -80h40M120 -48l34 12"/></g>
+  </g></g>
+
+  <!-- the pile of bills + the swelling dollar balloon -->
+  <g class="k fb" style="animation-name:pile;transform-origin:50% 100%"><g filter="url(#crayon)"><path d="M470 430Q500 360 560 350Q620 340 660 380Q690 410 700 430Z" fill="#7fd98f" stroke="#2b8a3e" stroke-width="5" stroke-linejoin="round"/></g>
+    <path d="M500 410H640M520 388H620M540 368H600" stroke="#2b8a3e" stroke-width="4" opacity=".5" stroke-linecap="round"/></g>
+  <g transform="translate(590 340)"><g class="k fb" style="animation-name:ball;transform-origin:50% 100%"><g class="wob"><path d="M0 -4Q-8 -30 0 -52" fill="none" stroke="#5a6070" stroke-width="3"/><circle cy="-98" r="46" fill="#7fd98f" stroke="#2b8a3e" stroke-width="5"/><path d="M-6 -52 0 -44 6 -52Z" fill="#2b8a3e"/><text y="-82" text-anchor="middle" font-size="52" font-weight="900" fill="#fff" font-family="Arial,sans-serif">$</text><path d="M-28 -118a32 32 0 0 1 16 -16" stroke="#fff" stroke-width="5" fill="none" stroke-linecap="round" opacity=".7"/></g></g></g>
+  <g id="bills"></g>
+
+  <!-- RIGHT: the Bitcoin on a stump, cut in half by a sword -->
+  <g filter="url(#crayon)"><rect x="1100" y="410" width="160" height="60" fill="#a06a38" stroke="#6b3f12" stroke-width="5"/><ellipse cx="1180" cy="410" rx="80" ry="14" fill="#c98a4a" stroke="#6b3f12" stroke-width="5"/></g>
+  <g transform="translate(1180 367)">
+    <g class="k" style="animation-name:shine" opacity="0"><circle r="170" fill="url(#glow)"/><g class="rays"><path d="M0 -150 14 -80H-14ZM0 150 14 80H-14ZM-150 0-80 14V-14ZM150 0 80 14V-14Z" fill="#ffe27a" opacity=".7"/></g></g>
+    <g class="k fb" style="animation-name:small" opacity="0"><use href="#coinG"/></g>
+    <g class="k" style="animation-name:shine" opacity="0"><path class="tw" d="M-86 -60 -80 -48-68 -42-80 -36-86 -24-92 -36-104 -42-92 -48Z" fill="#fff3b8" stroke="#e8973a" stroke-width="2.5" style="--t:1.6s;--dl:0s"/><path class="tw" d="M90 -80 96 -66 110 -60 96 -54 90 -40 84 -54 70 -60 84 -66Z" fill="#fff3b8" stroke="#e8973a" stroke-width="2.5" style="--t:2s;--dl:-.6s"/><path class="tw" d="M70 20 75 30 85 35 75 40 70 50 65 40 55 35 65 30Z" fill="#fff3b8" stroke="#e8973a" stroke-width="2.5" style="--t:1.4s;--dl:-.3s"/></g>
+  </g>
+  <g transform="translate(1180 340)">
+    <g class="k" style="animation-name:halfL"><use href="#coinG" clip-path="url(#clipL)"/></g>
+    <g class="k" style="animation-name:halfR"><use href="#coinG" clip-path="url(#clipR)"/></g>
+    <rect class="k fb" style="animation-name:flash" x="-4" y="-100" width="8" height="200" rx="4" fill="#fff" opacity="0"/>
+    <g class="k" style="animation-name:sword" opacity="0"><path d="M-10 -120H10V-14L0 6-10 -14Z" fill="#e6ebf5" stroke="#4b5468" stroke-width="4" stroke-linejoin="round"/><rect x="-28" y="-128" width="56" height="12" rx="5" fill="#ffd45a" stroke="#b9770e" stroke-width="4"/><rect x="-7" y="-172" width="14" height="46" rx="5" fill="#a06a38" stroke="#6b3f12" stroke-width="4"/><circle cy="-178" r="10" fill="#ffd45a" stroke="#b9770e" stroke-width="4"/></g>
+  </g>
+</g></g>
+</svg>
+
+<script>
+(function(){
+  var WW=1500,H=520,D=16,i,W=WW,pan=false,$=function(id){return document.getElementById(id)};
+  function pc(s){return (s/D*100).toFixed(3)+'%'}
+  function kf(n,st){var l=st[st.length-1];if(l[0]<D)st=st.concat([[D,l[1]]]);return '@keyframes '+n+'{'+st.map(function(x){return pc(x[0])+'{'+x[1]+'}'}).join('')+'}'}
+  var seed=3;function rnd(){seed=(seed*9301+49297)%233280;return seed/233280}
+
+  /* sun rays */
+  var rs='';for(i=0;i<12;i++){var a=i*Math.PI/6;rs+='<path d="M'+(100+84*Math.cos(a))+' '+(112+84*Math.sin(a))+'L'+(100+98*Math.cos(a))+' '+(112+98*Math.sin(a))+'"/>'}
+  $('rays').innerHTML=rs;
+
+  /* sky: stormy clouds that clear, a few dollar bills drifting down */
+  var sk='';
+  for(i=0;i<2;i++)sk+='<div class="cl" style="--y:'+(8+i*13)+'%;--t:'+(95+i*30)+'s;--dl:-'+(i*45)+'s"><svg width="'+(130+i*30)+'" height="64" viewBox="0 0 96 48"><path d="M14 42a12 12 0 0 1-2-24 18 18 0 0 1 34-6 16 16 0 0 1 28 10 11 11 0 0 1-2 20Z" stroke="#222" stroke-width="3.5" stroke-linejoin="round"/></svg></div>';
+  for(i=0;i<6;i++)sk+='<div class="sb" style="--x:'+(6+i*16)+'%;--t:'+(14+rnd()*8)+'s;--dl:-'+(rnd()*14)+'s"><svg width="58" height="32" viewBox="-36 -20 72 40"><use href="#bill" x="-36" y="-20" width="72" height="40"/></svg></div>';
+  $('sky').innerHTML=sk;
+
+  /* bills shooting out of the printer slot */
+  var b='';for(i=0;i<10;i++)b+='<g transform="translate(330 358)"><g class="bill" style="--dx:'+(150+rnd()*220)+'px;--dy:'+(24+rnd()*14)+'px;--r:'+((rnd()>.5?1:-1)*(120+rnd()*200))+'deg;--dl:-'+(i*.22)+'s"><use href="#bill" x="-36" y="-20" width="72" height="40"/></g></g>';
+  $('bills').innerHTML=b;
+
+  /* responsive stage + camera (pans on phones) */
+  function layout(){
+    var vw=innerWidth,vh=innerHeight,hFit=vw*H/WW,h=hFit>=.30*vh?Math.min(hFit,.46*vh):.38*vh;
+    W=vw*H/h;pan=W<WW;var vx=W>=WW?(WW-W)/2:0,s=$('stage');
+    s.style.height=h+'px';s.setAttribute('viewBox',vx+' 0 '+W+' '+H);
+    function tx(f){return pan?Math.max(W-WW,Math.min(0,W/2-f)):0}
+    var F=[[0,450],[7.2,450],[8.8,1130],[15,1130],[16,450]];
+    $('camkf').textContent=kf('cam',F.map(function(f){return [f[0],'transform:translateX('+tx(f[1]).toFixed(1)+'px)']}));
+  }
+
+  /* timeline */
+  $('kf').textContent=
+   kf('stg',[[0,'opacity:0'],[.4,'opacity:1'],[15.3,'opacity:1'],[15.9,'opacity:0']])+
+   kf('tint',[[0,'opacity:0'],[.6,'opacity:.85'],[9.4,'opacity:.85'],[11,'opacity:0']])+
+   kf('cloudc',[[0,'fill:#b9b1cf'],[9.5,'fill:#b9b1cf'],[11,'fill:#fbf8ec'],[15.5,'fill:#fbf8ec']])+
+   kf('sunA',[[0,'opacity:1'],[9.3,'opacity:1'],[10.3,'opacity:0'],[15.4,'opacity:0'],[15.9,'opacity:1']])+
+   kf('sunB',[[0,'opacity:0'],[9.3,'opacity:0'],[10.3,'opacity:1'],[15.4,'opacity:1'],[15.9,'opacity:0']])+
+   kf('pile',[[0,'transform:scaleY(.12)'],[11,'transform:scaleY(1)']])+
+   kf('ball',[[0,'transform:scale(.7)'],[11,'transform:scale(1.35)']])+
+   kf('sword',[[0,'opacity:0;transform:translate(0,-190px) rotate(-6deg)'],[8,'opacity:0;transform:translate(0,-190px) rotate(-6deg)'],[8.5,'opacity:1;transform:translate(0,-196px) rotate(-8deg)'],[9.2,'opacity:1;transform:translate(0,-196px) rotate(-8deg)'],[9.45,'opacity:1;transform:translate(0,34px) rotate(0deg)'],[10,'opacity:1;transform:translate(0,34px) rotate(0deg)'],[10.7,'opacity:0;transform:translate(0,-120px) rotate(-10deg)']])+
+   kf('flash',[[0,'opacity:0'],[9.42,'opacity:0'],[9.48,'opacity:1'],[9.9,'opacity:0']])+
+   kf('halfL',[[0,'opacity:1;transform:none'],[9.45,'opacity:1;transform:none'],[9.9,'opacity:1;transform:translate(-34px,10px) rotate(-14deg)'],[10.9,'opacity:0;transform:translate(-80px,50px) rotate(-34deg)']])+
+   kf('halfR',[[0,'opacity:1;transform:none'],[9.45,'opacity:1;transform:none'],[9.9,'opacity:1;transform:translate(10px,0) rotate(6deg)'],[10.6,'opacity:0;transform:translate(10px,0) rotate(6deg)']])+
+   kf('small',[[0,'opacity:0;transform:scale(.3)'],[9.9,'opacity:0;transform:scale(.3)'],[10.4,'opacity:1;transform:scale(.78)'],[10.9,'opacity:1;transform:scale(.62)']])+
+   kf('shine',[[0,'opacity:0'],[10.4,'opacity:0'],[11.2,'opacity:1'],[15.2,'opacity:1'],[15.8,'opacity:0']]);
+  layout();
+  var rt;addEventListener('resize',function(){clearTimeout(rt);rt=setTimeout(layout,150)});
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mt. Gox — Not Your Keys, Not Your Coins</title>
+<style>
+/* Text-free 28s loop, two scenes:
+   1) NOT your keys: coins + key sit in the exchange, a thief takes them all, the building sinks
+   2) YOUR keys: a coin goes into your own vault, your golden key turns the lock, the thief bounces off a red X */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#b3a9e6 0%,#dcbfe0 35%,#f5c6b0 68%,#f8dd9c 100%)}
+#sky{position:fixed;inset:0;pointer-events:none;overflow:hidden}
+.mote{position:absolute;bottom:-20px;left:var(--x);width:var(--s);height:var(--s);background:#ffd45a;opacity:.4;border-radius:2px;animation:mote var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes mote{from{transform:translateY(0) rotate(0)}to{transform:translateY(-112vh) rotate(200deg)}}
+.st{position:absolute;left:var(--x);top:var(--y);width:var(--s);height:var(--s);background:#fff6cf;clip-path:polygon(50% 0,60% 40%,100% 50%,60% 60%,50% 100%,40% 60%,0 50%,40% 40%);animation:tw var(--t) ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes tw{from{opacity:.15;transform:scale(.6)}to{opacity:.9;transform:scale(1.1)}}
+#stage{position:fixed;inset:0;width:100%;height:100%;pointer-events:none}
+.k{animation-duration:28s;animation-iteration-count:infinite;animation-timing-function:ease-in-out}
+.fb{transform-box:fill-box;transform-origin:center}
+.pulse{transform-box:fill-box;transform-origin:center;animation:pl 2.6s ease-out infinite}
+@keyframes pl{from{opacity:.7;transform:scale(1)}to{opacity:0;transform:scale(1.7)}}
+.stl{opacity:0;animation:stl 1.5s ease-in infinite;animation-delay:var(--dl)}
+@keyframes stl{0%{opacity:0;transform:translate(0,0)}10%{opacity:1}50%{transform:translate(calc(var(--dx)*.5),-80px)}92%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}.k{opacity:1!important}}
+</style>
+<style id="kf"></style>
+</head>
+<body>
+<div id="sky" aria-hidden="true"></div>
+<svg id="stage" viewBox="0 0 1000 560" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+<defs>
+  <filter id="crayon"><feTurbulence type="fractalNoise" baseFrequency="0.03" numOctaves="2" result="n"/><feDisplacementMap in="SourceGraphic" in2="n" scale="5" xChannelSelector="R" yChannelSelector="G"/></filter>
+  <radialGradient id="glow"><stop offset="0" stop-color="#ffe9a0" stop-opacity=".95"/><stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/></radialGradient>
+  <linearGradient id="gold" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffe27a"/><stop offset="1" stop-color="#f0a92e"/></linearGradient>
+  <symbol id="coin" viewBox="-20 -20 40 40"><circle r="18" fill="url(#gold)" stroke="#8a5a00" stroke-width="3.5"/><circle r="12" fill="none" stroke="#8a5a00" stroke-width="2" opacity=".55"/><text y="7" text-anchor="middle" font-size="20" font-weight="900" fill="#7a4a00" font-family="Arial,sans-serif">₿</text><path d="M-11 -8a13 13 0 0 1 8-7" stroke="#fff6cf" stroke-width="3" fill="none" stroke-linecap="round"/></symbol>
+  <symbol id="key" viewBox="0 0 64 32"><path d="M26 16H58M48 16V26M56 16V24" stroke="#8a5a00" stroke-width="6" stroke-linecap="round" fill="none"/><circle cx="14" cy="16" r="11" fill="url(#gold)" stroke="#8a5a00" stroke-width="4"/><circle cx="14" cy="16" r="4" fill="#4c4180"/></symbol>
+  <symbol id="thief" viewBox="-50 -180 100 180"><path d="M-32 0Q-30 -108 0 -118Q30 -108 32 0Z" fill="#1e1840" stroke="#0f0b26" stroke-width="5" stroke-linejoin="round"/><circle cy="-140" r="30" fill="#1e1840" stroke="#0f0b26" stroke-width="5"/><circle cx="-16" cy="-140" r="4.5" fill="#ff4d5e"/><circle cx="-2" cy="-140" r="4.5" fill="#ff4d5e"/><circle cx="-38" cy="-40" r="24" fill="#b9770e" stroke="#0f0b26" stroke-width="5"/></symbol>
+</defs>
+
+<!-- mountains + ground -->
+<path d="M-100 470 50 340 200 430 340 310 500 440 660 340 800 440 940 320 1100 470Z" fill="#a89bd4" opacity=".7"/>
+<g filter="url(#crayon)"><rect x="-50" y="470" width="1100" height="120" fill="#7f70b8" stroke="#5b4d96" stroke-width="6"/></g>
+<path d="M-50 520H1050" stroke="#c9bdf0" stroke-width="5" stroke-dasharray="70 60" opacity=".6"/>
+
+<!-- SCENE 1: the exchange holds the coins AND the key -->
+<g class="k" style="animation-name:p1" opacity="0">
+ <g class="k fb" style="animation-name:bld;transform-origin:50% 100%">
+  <g filter="url(#crayon)">
+   <path d="M340 260 500 180 660 260Z" fill="#a89bd4" stroke="#231d3d" stroke-width="6" stroke-linejoin="round"/>
+   <rect x="360" y="260" width="280" height="180" fill="#cfc9ea" stroke="#231d3d" stroke-width="6"/>
+   <rect x="340" y="440" width="320" height="30" rx="4" fill="#8f8aa8" stroke="#231d3d" stroke-width="5"/>
+   <rect x="385" y="290" width="70" height="80" rx="5" fill="#3d3660"/><rect x="545" y="290" width="70" height="80" rx="5" fill="#3d3660"/>
+   <rect x="470" y="370" width="60" height="70" rx="6" fill="#3d3660"/>
+   <rect class="k" style="animation-name:fl" x="360" y="260" width="280" height="180" fill="#ff4d5e" opacity="0"/>
+  </g>
+  <g class="k" style="animation-name:wc"><use href="#coin" x="401" y="312" width="38" height="38"/><use href="#coin" x="561" y="312" width="38" height="38"/><use href="#key" x="468" y="298" width="64" height="32"/></g>
+ </g>
+ <g transform="translate(1050 470)"><g class="k" style="animation-name:th1"><use href="#thief" x="-50" y="-180" width="100" height="180"/></g></g>
+ <g class="k" style="animation-name:stg" opacity="0"><g id="stolen"></g></g>
+</g>
+
+<!-- SCENE 2: YOUR vault, YOUR key -->
+<g class="k" style="animation-name:kg" opacity="0"><circle cx="500" cy="400" r="160" fill="url(#glow)"/></g>
+<g class="k" style="animation-name:snow" opacity="0"><circle class="pulse" cx="500" cy="410" r="120" fill="none" stroke="#5ce0c6" stroke-width="6"/></g>
+
+<g transform="translate(500 470)"><g class="k fb" style="animation-name:dev;transform-origin:50% 100%" opacity="0" filter="url(#crayon)">
+ <rect x="-80" y="-110" width="160" height="110" rx="14" fill="#cfd3e0" stroke="#5b4d96" stroke-width="7"/>
+ <rect x="-30" y="-114" width="60" height="10" rx="4" fill="#3d3660"/>
+ <path d="M-58 -66H-28M-43 -81V-51M-53 -76 -33 -56M-33 -76 -53 -56" stroke="#3aa9c9" stroke-width="5" stroke-linecap="round"/>
+ <circle cy="-38" r="12" fill="#4c4180" stroke="#2b2350" stroke-width="4"/><rect x="-4" y="-34" width="8" height="20" rx="3" fill="#4c4180" stroke="#2b2350" stroke-width="3"/>
+</g></g>
+
+<g transform="translate(500 100)"><g class="k" style="animation-name:cd" opacity="0"><use href="#coin" x="-24" y="-24" width="48" height="48"/></g></g>
+
+<g transform="translate(500 432)"><g class="k" style="animation-name:key;transform-origin:0 0" opacity="0" filter="url(#crayon)">
+ <path d="M0 0V-84" stroke="#8a5a00" stroke-width="16" stroke-linecap="round"/><path d="M0 0V-84" stroke="#f0a92e" stroke-width="8" stroke-linecap="round"/>
+ <path d="M0 -10H17M0 -26H12" stroke="#8a5a00" stroke-width="10" stroke-linecap="round"/>
+ <circle cy="-106" r="26" fill="url(#gold)" stroke="#8a5a00" stroke-width="7"/><circle cy="-106" r="10" fill="#4c4180" stroke="#2b2350" stroke-width="3"/>
+</g></g>
+
+<!-- the thief tries again and bounces off -->
+<g transform="translate(1050 470)"><g class="k" style="animation-name:th2" opacity="0"><use href="#thief" x="-50" y="-180" width="100" height="180"/></g></g>
+<g transform="translate(860 330)"><path class="k fb" style="animation-name:xk" d="M-24 -24 24 24M24 -24-24 24" stroke="#ff4d5e" stroke-width="14" stroke-linecap="round" opacity="0"/></g>
+</svg>
+
+<script>
+(function(){
+  var D=28,i,$=function(id){return document.getElementById(id)};
+  function pc(s){return (s/D*100).toFixed(3)+'%'}
+  function kf(n,st){var l=st[st.length-1];if(l[0]<D)st=st.concat([[D,l[1]]]);return '@keyframes '+n+'{'+st.map(function(x){return pc(x[0])+'{'+x[1]+'}'}).join('')+'}'}
+  var seed=14;function rnd(){seed=(seed*9301+49297)%233280;return seed/233280}
+  var sk='';
+  for(i=0;i<16;i++)sk+='<div class="st" style="--x:'+(rnd()*96)+'%;--y:'+(rnd()*45)+'%;--s:'+(8+rnd()*12)+'px;--t:'+(2+rnd()*3)+'s;--dl:-'+(rnd()*4)+'s"></div>';
+  for(i=0;i<14;i++)sk+='<div class="mote" style="--x:'+(rnd()*98)+'%;--s:'+(5+rnd()*6)+'px;--t:'+(22+rnd()*20)+'s;--dl:-'+(rnd()*40)+'s"></div>';
+  $('sky').innerHTML=sk;
+
+  var bld=[[0,'transform:none'],[4.4,'transform:none']],fl=[[0,'opacity:0'],[4.4,'opacity:0']],t;
+  for(t=4.6,i=0;t<6.4;t+=.2,i++){bld.push([t,'transform:translate('+(i%2?5:-5)+'px,0)']);fl.push([t,'opacity:'+(i%2?.4:0)])}
+  bld.push([6.5,'transform:none;opacity:1'],[8,'transform:translateY(60px) scaleY(.35);opacity:1'],[8.6,'transform:translateY(90px) scaleY(.05);opacity:0']);
+  fl.push([6.6,'opacity:0']);
+
+  var css=
+   kf('p1',[[0,'opacity:0'],[.3,'opacity:1'],[8.6,'opacity:1'],[9.2,'opacity:0']])+kf('bld',bld)+kf('fl',fl)+
+   kf('wc',[[0,'opacity:1'],[2.4,'opacity:1'],[3,'opacity:0']])+
+   kf('th1',[[0,'opacity:0;transform:translateX(0)'],[.8,'opacity:1;transform:translateX(0)'],[2.4,'opacity:1;transform:translateX(-250px)'],[7,'opacity:1;transform:translateX(-250px)'],[8.6,'opacity:1;transform:translateX(0)'],[8.8,'opacity:0']])+
+   kf('stg',[[0,'opacity:0'],[2.4,'opacity:0'],[2.7,'opacity:1'],[6.4,'opacity:1'],[6.9,'opacity:0']])+
+   kf('dev',[[0,'opacity:0;transform:scale(.3)'],[10,'opacity:0;transform:scale(.3)'],[10.6,'opacity:1;transform:scale(1.1)'],[11,'opacity:1;transform:scale(1)'],[27,'opacity:1;transform:scale(1)'],[27.7,'opacity:0']])+
+   kf('cd',[[0,'opacity:0;transform:translateY(0)'],[11.4,'opacity:0;transform:translateY(0)'],[11.6,'opacity:1;transform:translateY(0)'],[12.5,'opacity:1;transform:translateY(250px) scale(.8)'],[12.7,'opacity:0;transform:translateY(255px) scale(.6)']])+
+   kf('key',[[0,'opacity:0;transform:translateY(-330px) rotate(0)'],[13,'opacity:0;transform:translateY(-330px) rotate(0)'],[13.8,'opacity:1;transform:translateY(0) rotate(0)'],[14.6,'opacity:1;transform:translateY(0) rotate(0)'],[15.4,'opacity:1;transform:translateY(0) rotate(90deg)'],[27,'opacity:1;transform:translateY(0) rotate(90deg)'],[27.7,'opacity:0']])+
+   kf('kg',[[0,'opacity:0'],[15.2,'opacity:0'],[16,'opacity:1'],[27,'opacity:1'],[27.7,'opacity:0']])+
+   kf('snow',[[0,'opacity:0'],[15.4,'opacity:0'],[16.4,'opacity:1'],[27,'opacity:1'],[27.7,'opacity:0']])+
+   kf('th2',[[0,'opacity:0;transform:translateX(0)'],[18,'opacity:0;transform:translateX(0)'],[18.3,'opacity:1;transform:translateX(0)'],[19.6,'opacity:1;transform:translateX(-150px)'],[21.2,'opacity:1;transform:translateX(-150px)'],[22.8,'opacity:1;transform:translateX(0)'],[23,'opacity:0']])+
+   kf('xk',[[0,'opacity:0;transform:scale(.2)'],[19.6,'opacity:0;transform:scale(.2)'],[19.9,'opacity:1;transform:scale(1.3)'],[20.3,'opacity:1;transform:scale(1)'],[21.4,'opacity:1;transform:scale(1)'],[22,'opacity:0']]);
+
+  /* the thief's haul: coins + the key */
+  var s='';
+  for(i=0;i<8;i++){var sx=420+rnd()*160,sy=300+rnd()*60,key=i==3;
+    s+='<g transform="translate('+sx.toFixed(0)+' '+sy.toFixed(0)+')"><g class="stl" style="--dx:'+(762-sx).toFixed(0)+'px;--dy:'+(440-sy).toFixed(0)+'px;--dl:-'+(i*.19).toFixed(2)+'s"><use href="#'+(key?'key':'coin')+'" x="-'+(key?32:15)+'" y="-'+(key?16:15)+'" width="'+(key?64:30)+'" height="'+(key?32:30)+'"/></g></g>'}
+  $('stolen').innerHTML=s;
+  $('kf').textContent=css;
+})();
+</script>
+</body>
+</html>

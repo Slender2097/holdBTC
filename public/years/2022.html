@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Exchange Meltdown Background</title>
+<style>
+/* Text-free, crazy cartoon: 2022, an exchange melts down - a googly-eyed sweating vault grins while the rug gets pulled, panicked coins sprint for the exit, bombs and sirens everywhere. */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#cfe8f0 0%,#fdf0c8 55%,#f9d98b 100%)}
+.crayon{filter:url(#crayon-filter)}
+.abs{position:absolute}
+#rays{left:50%;top:46%;width:200vmax;height:200vmax;margin:-100vmax 0 0 -100vmax;background:repeating-conic-gradient(rgba(255,120,90,.25) 0 7deg,transparent 7deg 18deg);-webkit-mask-image:radial-gradient(circle,#000 0,transparent 55%);mask-image:radial-gradient(circle,#000 0,transparent 55%);animation:spin 20s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* the nervous vault: wobbles, then slips when the rug is pulled */
+#sun{left:50%;top:46%;width:min(44vmin,340px);height:min(44vmin,340px);margin:calc(min(44vmin,340px)/-2) 0 0 calc(min(44vmin,340px)/-2);animation:slip 10s ease-in-out infinite}
+@keyframes slip{0%{transform:translateY(4px) rotate(-3deg)}30%{transform:translateY(-10px) rotate(3deg)}70%{transform:translateY(4px) rotate(-3deg)}75%{transform:translateY(0) rotate(0)}79%{transform:translateY(13vh) rotate(-14deg)}83%{transform:translateY(9vh) rotate(7deg)}87%{transform:translateY(13vh) rotate(-3deg)}100%{transform:translateY(4px) rotate(-3deg)}}
+#sun svg{width:100%;height:100%;display:block;animation:shk .12s linear infinite alternate}
+@keyframes shk{from{transform:translate(-2px,0)}to{transform:translate(2px,1px)}}
+.mo{transform-box:fill-box;transform-origin:50% 0%;animation:mo .3s ease-in-out infinite alternate}
+@keyframes mo{from{transform:scaleY(.8)}to{transform:scaleY(1.12)}}
+.sd{animation:sd .9s linear infinite}
+@keyframes sd{0%{opacity:0;transform:translateY(0)}20%{opacity:1}100%{opacity:0;transform:translateY(34px)}}
+.cr{transform-box:fill-box;transform-origin:50% 100%;animation:cr .5s ease-in-out infinite alternate}
+@keyframes cr{from{transform:rotate(-4deg)}to{transform:rotate(6deg)}}
+/* the rug that gets pulled */
+#rug{left:50%;top:calc(46% + 20vmin);width:min(60vmin,440px);margin-left:calc(min(60vmin,440px)/-2);height:min(8vmin,60px);animation:rugp 10s linear infinite}
+@keyframes rugp{0%{opacity:0;transform:translateX(0)}6%{opacity:1}70%{opacity:1;transform:translateX(0)}78%{opacity:1;transform:translateX(-140vw)}79%{opacity:0;transform:translateX(-140vw)}100%{opacity:0;transform:translateX(0)}}
+#rug svg{width:100%;height:100%;display:block}
+.cl{top:var(--y);left:0;animation:cloud var(--t) linear infinite;animation-delay:var(--dl);opacity:.6}
+@keyframes cloud{from{transform:translateX(-25vw)}to{transform:translateX(115vw)}}
+/* coins leaking out of the vault */
+.lk{animation:lk 1.5s ease-in infinite;animation-delay:var(--dl);opacity:0}
+@keyframes lk{0%{opacity:0;transform:translate(0,0) rotate(0)}15%{opacity:1}100%{opacity:0;transform:translate(var(--dx),24vh) rotate(260deg)}}
+/* panicked coins sprinting for the exit */
+.zip{left:0;animation:zip var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes zip{from{transform:translateX(-12vw)}to{transform:translateX(115vw)}}
+.hop{animation:hop .26s ease-in-out infinite alternate}
+@keyframes hop{to{transform:translateY(-12px)}}
+.l1,.l2{transform-box:fill-box;transform-origin:50% 0%;animation:lg .13s ease-in-out infinite alternate}
+.l2{animation-direction:alternate-reverse}
+@keyframes lg{from{transform:rotate(-38deg)}to{transform:rotate(38deg)}}
+.fall{top:0;animation:fall var(--t) linear infinite;animation-delay:var(--dl)}
+@keyframes fall{from{transform:translateY(-15vh)}to{transform:translateY(112vh)}}
+.dot{width:10px;height:10px;border-radius:2px;background:var(--c);opacity:.7}
+.fl{top:0;animation:rise var(--t) linear infinite;animation-delay:var(--dl);opacity:.8}
+@keyframes rise{from{transform:translateY(110vh)}to{transform:translateY(-30vh)}}
+.sw{animation:sway 3s ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes sway{from{transform:translateX(-18px) rotate(-16deg)}to{transform:translateX(18px) rotate(16deg)}}
+/* ground strip + conveyor of disaster */
+#table{left:0;bottom:0;width:100%;height:15%;border-top:5px solid #c92a2a;background:repeating-linear-gradient(90deg,rgba(201,42,42,.2) 0 24px,transparent 24px 48px),#fbf3dc}
+.track{bottom:2.5%;left:0;display:flex;align-items:center;gap:22px;width:max-content;animation:scroll 40s linear infinite}
+@keyframes scroll{to{transform:translateX(-50%)}}
+/* alarm lights flashing at the edges */
+#alarm{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(255,60,80,.6) 100%);animation:al 1s steps(2) infinite}
+@keyframes al{0%{opacity:0}50%{opacity:.55}100%{opacity:0}}
+svg.i{display:block}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="coin" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#e8973a" stroke="#222" stroke-width="5"/><circle cx="32" cy="32" r="17" fill="none" stroke="#222" stroke-width="3" opacity=".5"/><path d="M20 22a14 14 0 0 1 9-7" stroke="#fff5cc" stroke-width="4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="bomb" viewBox="0 0 64 64"><circle cx="28" cy="38" r="20" fill="#3a3068" stroke="#222" stroke-width="4"/><path d="M20 30a10 10 0 0 1 6-6" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round" opacity=".7"/><path d="M40 22Q46 10 54 12" stroke="#8a5a2b" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M54 4 57 10 63 12 57 14 54 20 51 14 45 12 51 10Z" fill="#ffd93b" stroke="#e8973a" stroke-width="2" stroke-linejoin="round"/></symbol>
+<symbol id="siren" viewBox="0 0 64 64"><path d="M16 46A16 16 0 0 1 48 46Z" fill="#ff4d5e" stroke="#222" stroke-width="4" stroke-linejoin="round"/><rect x="10" y="46" width="44" height="10" rx="3" fill="#8f8aa8" stroke="#222" stroke-width="4"/><path d="M32 6V14M10 14 16 20M54 14 48 20M4 34H10M54 34H60" stroke="#ffd93b" stroke-width="4" stroke-linecap="round"/><path d="M24 40a8 8 0 0 1 4-8" stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="rug" viewBox="0 0 64 64"><path d="M4 22V42M8 22V42M56 22V42M60 22V42" stroke="#222" stroke-width="2.5" stroke-linecap="round"/><rect x="8" y="18" width="48" height="28" rx="3" fill="#d9536a" stroke="#222" stroke-width="4"/><rect x="14" y="24" width="36" height="16" fill="none" stroke="#ffd93b" stroke-width="3"/><path d="M32 25 41 32 32 39 23 32Z" fill="#ffd93b" stroke="#b8651b" stroke-width="2"/></symbol>
+<symbol id="chart" viewBox="0 0 64 64"><path d="M6 8V56H58" fill="none" stroke="#222" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M10 12 22 20 30 14 40 36 48 32 56 54" fill="none" stroke="#d9536a" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M45 54 57 55 55 43" fill="none" stroke="#d9536a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+<symbol id="banana" viewBox="0 0 64 64"><path d="M16 12Q8 44 36 52Q54 54 58 42Q38 46 28 30Q24 22 26 12Z" fill="#ffd93b" stroke="#b8651b" stroke-width="4" stroke-linejoin="round"/><path d="M16 12 26 12" stroke="#8a5a2b" stroke-width="6" stroke-linecap="round"/></symbol>
+<symbol id="bag" viewBox="0 0 64 64"><path d="M24 18 28 8H40L44 18Q60 30 58 46Q56 58 34 58Q12 58 10 46Q8 30 24 18Z" fill="#84d494" stroke="#1f6b3a" stroke-width="4" stroke-linejoin="round"/><rect x="26" y="14" width="16" height="6" rx="2" fill="#d9536a" stroke="#222" stroke-width="2"/><circle cx="42" cy="44" r="6" fill="#1f6b3a"/><circle cx="46" cy="58" r="4" fill="#e8973a" stroke="#222" stroke-width="2"/></symbol>
+<symbol id="cloud" viewBox="0 0 96 48"><path d="M14 42a12 12 0 0 1-2-24 18 18 0 0 1 34-6 16 16 0 0 1 28 10 11 11 0 0 1-2 20Z" fill="#fbf8ec" stroke="#222" stroke-width="3.5" stroke-linejoin="round" opacity=".9"/></symbol>
+</defs></svg>
+
+<div id="rays" class="abs" aria-hidden="true"></div>
+<div id="sky" aria-hidden="true"></div>
+
+<!-- the rug -->
+<div id="rug" class="abs crayon" aria-hidden="true"><svg viewBox="0 0 400 60" preserveAspectRatio="none"><path d="M0 8V52M12 8V52M388 8V52M400 8V52" stroke="#222" stroke-width="4" stroke-linecap="round"/><rect x="14" y="6" width="372" height="48" rx="6" fill="#d9536a" stroke="#222" stroke-width="5"/><rect x="30" y="16" width="340" height="28" fill="none" stroke="#ffd93b" stroke-width="5"/><path d="M80 30 100 20 120 30 100 40ZM190 30 210 20 230 30 210 40ZM280 30 300 20 320 30 300 40Z" fill="#ffd93b" stroke="#b8651b" stroke-width="3"/></svg></div>
+
+<!-- big nervous vault with googly eyes -->
+<div id="sun" class="abs" aria-hidden="true">
+<svg class="crayon" viewBox="0 -24 200 224">
+  <rect x="10" y="14" width="180" height="172" rx="26" fill="#cfd3e0" stroke="#222" stroke-width="7"/>
+  <rect x="26" y="30" width="148" height="140" rx="16" fill="#b9b4d2" stroke="#222" stroke-width="4"/>
+  <rect x="2" y="46" width="14" height="24" rx="3" fill="#8f8aa8" stroke="#222" stroke-width="4"/><rect x="2" y="132" width="14" height="24" rx="3" fill="#8f8aa8" stroke="#222" stroke-width="4"/>
+  <g class="cr"><g transform="translate(112 14) rotate(16)"><path d="M-26 14-30-8-14 2 0-16 14 2 30-8 26 14Z" fill="#ffd93b" stroke="#b8651b" stroke-width="5" stroke-linejoin="round"/><circle cx="0" cy="-16" r="4" fill="#ff4d5e"/></g></g>
+  <path d="M46 52 84 62M154 52 116 62" stroke="#222" stroke-width="8" stroke-linecap="round"/>
+  <circle cx="68" cy="82" r="19" fill="#fff" stroke="#222" stroke-width="5"/><circle cx="132" cy="82" r="19" fill="#fff" stroke="#222" stroke-width="5"/>
+  <g transform="translate(68 82)"><g><circle cx="9" r="8" fill="#222"/><animateTransform attributeName="transform" type="rotate" from="0" to="360" dur=".7s" repeatCount="indefinite"/></g></g>
+  <g transform="translate(132 82)"><g><circle cx="-9" r="8" fill="#222"/><animateTransform attributeName="transform" type="rotate" from="360" to="0" dur=".55s" repeatCount="indefinite"/></g></g>
+  <circle cx="100" cy="110" r="12" fill="#ffd93b" stroke="#222" stroke-width="4"/><path d="M100 100V110" stroke="#222" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="48" cy="112" r="9" fill="#ff8fa3" opacity=".65"/><circle cx="152" cy="112" r="9" fill="#ff8fa3" opacity=".65"/>
+  <g class="mo"><path d="M54 128Q100 196 146 128Z" fill="#a3243a" stroke="#222" stroke-width="6" stroke-linejoin="round"/><path d="M62 132Q100 144 138 132L132 148Q100 158 68 148Z" fill="#fff" stroke="#222" stroke-width="3"/><ellipse cx="100" cy="170" rx="17" ry="8" fill="#ff8fa3"/></g>
+  <g class="sd"><path d="M176 34Q168 48 176 54 184 48 176 34Z" fill="#7cc4ee" stroke="#2f6f9a" stroke-width="3"/></g>
+  <g class="sd" style="animation-delay:.45s"><path d="M24 40Q16 54 24 60 32 54 24 40Z" fill="#7cc4ee" stroke="#2f6f9a" stroke-width="3"/></g>
+</svg>
+</div>
+
+<div id="front" aria-hidden="true"></div>
+<div id="table" class="abs crayon" aria-hidden="true"></div>
+<div id="track" aria-hidden="true"></div>
+<div id="alarm" aria-hidden="true"></div>
+
+<svg style="display:none" aria-hidden="true">
+  <filter id="crayon-filter">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<script>
+(function(){
+  var sky='',fr='',i,s,u=function(n,w){return '<svg class="i crayon" width="'+w+'" height="'+w+'"><use href="#'+n+'"/></svg>'};
+  /* a panicked coin: big eyes, little o-mouth, legs going a mile a minute */
+  var run='<svg class="i crayon" width="46" height="62" viewBox="0 0 44 60"><circle cx="22" cy="20" r="17" fill="#e8973a" stroke="#222" stroke-width="4"/><circle cx="15" cy="17" r="5.5" fill="#fff" stroke="#222" stroke-width="1.5"/><circle cx="29" cy="17" r="5.5" fill="#fff" stroke="#222" stroke-width="1.5"/><circle cx="17.5" cy="17" r="2.4" fill="#222"/><circle cx="31.5" cy="17" r="2.4" fill="#222"/><ellipse cx="23" cy="29" rx="4" ry="5" fill="#a3243a" stroke="#222" stroke-width="2"/><path class="l1" d="M17 36V54" stroke="#222" stroke-width="5" stroke-linecap="round"/><path class="l2" d="M27 36V54" stroke="#222" stroke-width="5" stroke-linecap="round"/></svg>';
+  /* clouds */
+  for(i=0;i<3;i++)sky+='<div class="abs cl" style="--y:'+(5+i*11)+'%;--t:'+(40+i*12)+'s;--dl:-'+(i*17)+'s"><svg class="i crayon" width="'+(110+(i*37)%70)+'" height="'+(55+(i*19)%35)+'" viewBox="0 0 96 48"><use href="#cloud"/></svg></div>';
+  document.getElementById('sky').innerHTML=sky;
+  /* coins leaking out of the vault's bottom */
+  for(i=0;i<5;i++)fr+='<div class="abs lk" style="left:calc(50% + '+((i-2)*5)+'vmin);top:64%;--dx:'+((i-2)*40)+'px;--dl:-'+(i*.3).toFixed(1)+'s">'+u('coin',26)+'</div>';
+  /* a stampede of panicked coins sprinting for the exit */
+  for(i=0;i<8;i++)fr+='<div class="abs zip" style="top:auto;bottom:calc(14% + '+((i%3)*2.5)+'%);--t:'+(4.5+(i*.7)%3).toFixed(1)+'s;--dl:-'+(i*1.2).toFixed(1)+'s"><div class="hop" style="animation-delay:-'+(i*.07).toFixed(2)+'s">'+run+'</div></div>';
+  /* falling coins + confetti */
+  for(i=0;i<5;i++)fr+='<div class="abs fall" style="left:'+(8+i*20)+'%;--t:'+(10+(i*5)%7)+'s;--dl:-'+(i*3.2)+'s"><div class="sw">'+u('coin',34)+'</div></div>';
+  var cc=['#d9536a','#f5c542','#2b8a3e','#5aa9e6'];
+  for(i=0;i<8;i++)fr+='<div class="abs fall dot" style="left:'+(4+i*12.5)+'%;--c:'+cc[i%4]+';--t:'+(14+(i*3)%8)+'s;--dl:-'+(i*3)+'s"></div>';
+  /* flying disasters: bombs, sirens, banana peels, leaky bags, crashing charts */
+  var n=['bomb','siren','banana','bag','chart','bomb','rug'];
+  for(i=0;i<n.length;i++){s=56+(i*17)%30;
+    fr+='<div class="abs fl" style="left:'+(5+i*14)+'%;--t:'+(20+(i*7)%12)+'s;--dl:-'+(i*3.7)+'s"><div class="sw" style="--dl:-'+(i%4)+'s">'+u(n[i],s)+'</div></div>'}
+  document.getElementById('front').innerHTML=fr;
+  /* conveyor on the ground */
+  var seq=['banana','coin','bomb','bag','chart','siren'],t='';
+  for(i=0;i<12;i++)t+=u(seq[i%6],44);
+  document.getElementById('track').innerHTML='<div class="abs track">'+t+t+'</div>';
+})();
+</script>
+</body>
+</html>

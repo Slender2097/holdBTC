@@ -23,6 +23,48 @@ export interface NostrUser {
 }
 
 const STORAGE_KEY = "holdbtc_nostr_user";
+const SESSION_SK_KEY = "holdbtc_nsec_sk";
+
+function skToHex(sk: Uint8Array): string {
+  return Array.from(sk)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function hexToSk(hex: string): Uint8Array | null {
+  if (!/^[0-9a-f]+$/i.test(hex) || hex.length !== 64) return null;
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) {
+    out[i] = parseInt(hex.slice(i * 2, i * 2 + 2), 16);
+  }
+  return out;
+}
+
+function saveSessionSk(sk: Uint8Array) {
+  try {
+    sessionStorage.setItem(SESSION_SK_KEY, skToHex(sk));
+  } catch {
+    /* ignore */
+  }
+}
+
+function loadSessionSk(): Uint8Array | null {
+  try {
+    const raw = sessionStorage.getItem(SESSION_SK_KEY);
+    if (!raw) return null;
+    return hexToSk(raw);
+  } catch {
+    return null;
+  }
+}
+
+function clearSessionSk() {
+  try {
+    sessionStorage.removeItem(SESSION_SK_KEY);
+  } catch {
+    /* ignore */
+  }
+}
 
 function saveUserToStorage(user: NostrUser) {
   try {
@@ -63,6 +105,7 @@ function clearUserStorage() {
   } catch {
     /* ignore */
   }
+  clearSessionSk();
 }
 
 export function useNostr() {
@@ -106,6 +149,22 @@ export function useNostr() {
             return;
           }
           skRef.current = null;
+          clearSessionSk();
+        }
+
+        if (saved.mode === "nsec" || saved.mode === "ephemeral") {
+          const sk = loadSessionSk();
+          if (!sk) {
+            clearUserStorage();
+            return;
+          }
+          const pk = getPublicKey(sk);
+          if (pk !== saved.pubkey) {
+            sk.fill(0);
+            clearUserStorage();
+            return;
+          }
+          skRef.current = sk;
         }
 
         if (!cancelled) {
@@ -135,6 +194,7 @@ export function useNostr() {
         );
       }
       skRef.current = null;
+      clearSessionSk();
       const next: NostrUser = {
         pubkey: pk,
         npub: toNpub(pk),
@@ -166,6 +226,7 @@ export function useNostr() {
 
       const pk = getPublicKey(sk);
       skRef.current = sk;
+      saveSessionSk(sk);
 
       const next: NostrUser = {
         pubkey: pk,
@@ -183,6 +244,7 @@ export function useNostr() {
   const loginEphemeral = useCallback(() => {
     const { sk, pk, npub } = createEphemeralKey();
     skRef.current = sk;
+    saveSessionSk(sk);
     const next: NostrUser = { pubkey: pk, npub, mode: "ephemeral" };
     setUser(next);
     saveUserToStorage(next);
@@ -206,7 +268,7 @@ export function useNostr() {
       }
 
       if (user?.mode === "nsec" || user?.mode === "ephemeral") {
-        throw new Error("Paste your nsec again to pay. It is not kept after reload.");
+        throw new Error("Paste your nsec again to sign. This tab no longer has the key.");
       }
 
       const nostr = typeof window !== "undefined" ? (window as any).nostr : null;

@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Genesis Block Background</title>
+<style>
+/* Illustrated, text-free scene: the Genesis block rising like a sun. */
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:linear-gradient(#e9dfc4 0%,#f3d9a6 45%,#f6c98a 62%,#c8c5b6 100%)}
+.crayon{filter:url(#crayon-filter)}
+.abs{position:absolute}
+/* sun rays + glow */
+#rays{left:50%;top:58%;width:200vmax;height:200vmax;margin:-100vmax 0 0 -100vmax;background:repeating-conic-gradient(rgba(255,205,90,.26) 0 7deg,transparent 7deg 18deg);-webkit-mask-image:radial-gradient(circle,#000 0,transparent 55%);mask-image:radial-gradient(circle,#000 0,transparent 55%);animation:spin 140s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+#glow{left:50%;top:58%;width:90vmin;height:90vmin;margin:-45vmin 0 0 -45vmin;border-radius:50%;background:radial-gradient(circle,rgba(255,230,140,.85),rgba(255,230,140,0) 65%);animation:pulse 7s ease-in-out infinite alternate}
+@keyframes pulse{from{transform:scale(.9);opacity:.7}to{transform:scale(1.1);opacity:1}}
+/* the giant golden first block */
+#sun{left:50%;top:58%;width:min(46vmin,360px);height:min(46vmin,360px);margin:calc(min(46vmin,360px)/-2) 0 0 calc(min(46vmin,360px)/-2);animation:bob 8s ease-in-out infinite alternate}
+@keyframes bob{from{transform:translateY(8px) rotate(-2deg)}to{transform:translateY(-14px) rotate(2deg)}}
+#sun svg{width:100%;height:100%;display:block}
+/* clouds */
+.cl{top:var(--y);left:0;animation:cloud var(--t) linear infinite;animation-delay:var(--dl);opacity:.6}
+@keyframes cloud{from{transform:translateX(-25vw)}to{transform:translateX(115vw)}}
+/* hills */
+#hills{left:0;bottom:0;width:100%;height:40%}
+/* twinkles */
+.tw{animation:tw var(--t) ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes tw{from{opacity:.15;transform:scale(.6) rotate(0)}to{opacity:1;transform:scale(1.1) rotate(25deg)}}
+/* floating things */
+.fl{top:0;animation:rise var(--t) linear infinite;animation-delay:var(--dl);opacity:.6}
+@keyframes rise{from{transform:translateY(110vh)}to{transform:translateY(-30vh)}}
+.sw{animation:sway 7s ease-in-out infinite alternate;animation-delay:var(--dl)}
+@keyframes sway{from{transform:translateX(-14px) rotate(-8deg)}to{transform:translateX(14px) rotate(8deg)}}
+.track{bottom:8px;left:0;display:flex;align-items:center;gap:6px;width:max-content;animation:scroll 90s linear infinite;opacity:.6}
+@keyframes scroll{to{transform:translateX(-50%)}}
+svg.i{display:block}
+@media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="coin" viewBox="0 0 64 64"><circle cx="32" cy="32" r="27" fill="#e8973a" stroke="#222" stroke-width="5"/><circle cx="32" cy="32" r="17" fill="none" stroke="#222" stroke-width="3" opacity=".5"/><path d="M20 22a14 14 0 0 1 9-7" stroke="#fff5cc" stroke-width="4" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="cube" viewBox="0 0 64 64"><path d="M32 6 56 19 32 32 8 19Z" fill="#c8f0d0" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/><path d="M8 19v26l24 13V32Z" fill="#a8e6b3" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/><path d="M56 19v26L32 58V32Z" fill="#84d494" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/></symbol>
+<symbol id="gcube" viewBox="0 0 64 64"><path d="M32 6 56 19 32 32 8 19Z" fill="#fff0b3" stroke="#e8973a" stroke-width="4" stroke-linejoin="round"/><path d="M8 19v26l24 13V32Z" fill="#ffe08a" stroke="#e8973a" stroke-width="4" stroke-linejoin="round"/><path d="M56 19v26L32 58V32Z" fill="#f5c542" stroke="#e8973a" stroke-width="4" stroke-linejoin="round"/><path d="M15 24l10 6M39 34l10-6" stroke="#fff8d6" stroke-width="3" stroke-linecap="round" opacity=".8"/></symbol>
+<symbol id="link" viewBox="0 0 64 64"><rect x="4" y="20" width="34" height="24" rx="12" fill="none" stroke="#222" stroke-width="5" transform="rotate(-20 21 32)"/><rect x="26" y="20" width="34" height="24" rx="12" fill="none" stroke="#d9536a" stroke-width="5" transform="rotate(-20 43 32)"/></symbol>
+<symbol id="news" viewBox="0 0 64 64"><rect x="8" y="10" width="48" height="44" rx="3" fill="#f4f1e2" stroke="#222" stroke-width="4"/><path d="M14 20h36" stroke="#222" stroke-width="5" stroke-linecap="round"/><rect x="14" y="28" width="16" height="14" fill="#d9536a" opacity=".55"/><path d="M36 30h14M36 36h14M36 42h14M14 48h36" stroke="#222" stroke-width="3" opacity=".5" stroke-linecap="round"/></symbol>
+<symbol id="pick" viewBox="0 0 64 64"><path d="M20 54 44 22" stroke="#8a5a2b" stroke-width="6" stroke-linecap="round"/><path d="M12 24Q32 4 56 20" fill="none" stroke="#222" stroke-width="6" stroke-linecap="round"/></symbol>
+<symbol id="sparkle" viewBox="0 0 64 64"><path d="M32 6 38 26 58 32 38 38 32 58 26 38 6 32 26 26Z" fill="#fff3b8" stroke="#e8973a" stroke-width="3" stroke-linejoin="round"/></symbol>
+<symbol id="sprout" viewBox="0 0 64 64"><path d="M32 58V34" stroke="#2b8a3e" stroke-width="5" stroke-linecap="round"/><path d="M32 38C20 38 14 30 14 20c12 0 18 6 18 18Z" fill="#a8e6b3" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/><path d="M32 32C42 32 50 26 50 14c-12 0-18 6-18 18Z" fill="#a8e6b3" stroke="#2b8a3e" stroke-width="4" stroke-linejoin="round"/></symbol>
+<symbol id="cloud" viewBox="0 0 96 48"><path d="M14 42a12 12 0 0 1-2-24 18 18 0 0 1 34-6 16 16 0 0 1 28 10 11 11 0 0 1-2 20Z" fill="#fbf8ec" stroke="#222" stroke-width="3.5" stroke-linejoin="round" opacity=".9"/></symbol>
+</defs></svg>
+
+<div id="rays" class="abs" aria-hidden="true"></div>
+<div id="glow" class="abs" aria-hidden="true"></div>
+<div id="sun" class="abs" aria-hidden="true"><svg class="crayon"><use href="#gcube"/></svg></div>
+<div id="sky" aria-hidden="true"></div>
+
+<svg id="hills" class="abs crayon" viewBox="0 0 1000 300" preserveAspectRatio="none" aria-hidden="true">
+  <path d="M0 120C150 40 300 90 450 70S750 20 1000 90V300H0Z" fill="#b9dcae" stroke="#2b8a3e" stroke-width="4" vector-effect="non-scaling-stroke"/>
+  <path d="M0 190C200 130 350 200 550 160S850 120 1000 170V300H0Z" fill="#a8e6b3" stroke="#2b8a3e" stroke-width="4" vector-effect="non-scaling-stroke"/>
+</svg>
+<div id="front" aria-hidden="true"></div>
+
+<svg style="display:none" aria-hidden="true">
+  <filter id="crayon-filter">
+    <feTurbulence type="fractalNoise" baseFrequency="0.06" numOctaves="3" result="noise"/>
+    <feDisplacementMap in="SourceGraphic" in2="noise" scale="4" xChannelSelector="R" yChannelSelector="G"/>
+  </filter>
+</svg>
+
+<script>
+(function(){
+  var sky='',fr='',i,s,u=function(n,w){return '<svg class="i crayon" width="'+w+'" height="'+w+'"><use href="#'+n+'"/></svg>'};
+  /* clouds drifting across the sky */
+  for(i=0;i<3;i++)sky+='<div class="abs cl" style="--y:'+(6+i*11)+'%;--t:'+(90+i*25)+'s;--dl:-'+(i*38)+'s"><svg class="i crayon" width="'+(110+(i*37)%70)+'" height="'+(55+(i*19)%35)+'" viewBox="0 0 96 48"><use href="#cloud"/></svg></div>';
+  /* twinkling sparkles */
+  for(i=0;i<6;i++)sky+='<div class="abs tw" style="left:'+(4+(i*29)%92)+'%;top:'+(4+(i*23)%48)+'%;--t:'+(2+(i%4)*.9)+'s;--dl:-'+(i*.7)+'s">'+u('sparkle',18+(i%3)*8)+'</div>';
+  document.getElementById('sky').innerHTML=sky;
+  /* sprouts growing on the hills */
+  [10,72,92].forEach(function(l,k){fr+='<div class="abs" style="left:'+l+'%;bottom:'+(9+(k%2)*7)+'%">'+u('sprout',44)+'</div>'});
+  /* floating first-day things */
+  var n=['news','coin','gcube','coin'];
+  for(i=0;i<n.length;i++){s=56+(i*17)%36;
+    fr+='<div class="abs fl" style="left:'+(12+i*24)+'%;--t:'+(44+(i*7)%16)+'s;--dl:-'+(i*5.3)+'s"><div class="sw">'+u(n[i],s)+'</div></div>'}
+  /* chain of blocks along the ground */
+  var t='';for(i=0;i<12;i++)t+=u(i%6==0?'gcube':i%2?'link':'cube',46);
+  fr+='<div class="abs track">'+t+t+'</div>';
+  document.getElementById('front').innerHTML=fr;
+})();
+</script>
+</body>
+</html>

@@ -197,7 +197,7 @@ export function updateGame(
   bird.rotation = Math.max(-0.6, Math.min(0.9, bird.velocity * 0.08));
 
   if (bird.y - bird.radius < 0 || bird.y + bird.radius > canvasHeight) {
-    return { ...state, bird, isGameOver: true, isPlaying: false };
+    return { ...state, bird, isGameOver: true, isPlaying: false, frame: state.frame + 1 };
   }
 
   const diff = getDifficulty(state.score);
@@ -273,13 +273,10 @@ export function replayRun(params: {
   const rng = mulberry32(params.seed >>> 0);
 
   let state = createInitialState(width, height, 0, rng);
-  if (flapAt.has(0)) state = flap(state);
 
   for (let i = 0; i < maxFrames; i++) {
-    if (i > 0 && flapAt.has(i)) state = flap(state);
-    if (!state.isPlaying && !state.isGameOver) {
-      return { score: 0, distance: 0, frames: i, dead: true };
-    }
+    if (flapAt.has(i)) state = flap(state);
+    if (!state.isPlaying && !state.isGameOver) continue;
     state = updateGame(state, RANKED_DT, width, height, rng);
     if (state.isGameOver) {
       return {
