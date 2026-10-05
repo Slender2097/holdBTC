@@ -227,3 +227,5 @@ export function renderFrame(
   drawBird(ctx, state.bird);
   drawHUD(ctx, state, width, height);
 }
+
+export function resetFrameDamage() {}

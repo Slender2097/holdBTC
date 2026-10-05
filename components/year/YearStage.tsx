@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-function lighten(html: string): string {
+function still(html: string): string {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")
     .replace(/class="([^"]*)\bcrayon\b([^"]*)"/g, 'class="$1$2"')
@@ -14,8 +14,18 @@ function lighten(html: string): string {
     );
 }
 
-/** Static year art. Motion and scripts are removed so the game does not lag. */
-export default function YearStage({ year }: { year: number }) {
+/**
+ * Year art from public/years.
+ * live: paid run, full clip.
+ * still: free play, the frozen test version.
+ */
+export default function YearStage({
+  year,
+  live = false,
+}: {
+  year: number;
+  live?: boolean;
+}) {
   const [html, setHtml] = useState<string | null>(null);
 
   useEffect(() => {
@@ -28,7 +38,8 @@ export default function YearStage({ year }: { year: number }) {
     fetch(`/years/${year}.html`)
       .then((res) => (res.ok ? res.text() : ""))
       .then((text) => {
-        if (!cancel && text) setHtml(lighten(text));
+        if (cancel || !text) return;
+        setHtml(live ? text : still(text));
       })
       .catch(() => {
         if (!cancel) setHtml(null);
@@ -37,7 +48,7 @@ export default function YearStage({ year }: { year: number }) {
     return () => {
       cancel = true;
     };
-  }, [year]);
+  }, [year, live]);
 
   if (!html) return null;
 
@@ -46,7 +57,7 @@ export default function YearStage({ year }: { year: number }) {
       title=""
       aria-hidden
       tabIndex={-1}
-      sandbox=""
+      sandbox={live ? "allow-scripts" : ""}
       srcDoc={html}
       style={{
         position: "absolute",
@@ -58,6 +69,7 @@ export default function YearStage({ year }: { year: number }) {
         zIndex: 0,
         background: "transparent",
         transform: "translateZ(0)",
+        contain: "strict",
       }}
     />
   );

@@ -7,10 +7,9 @@ import {
   getYearFromScore,
   updateGame,
   RANKED_DT,
-  RANKED_TICK_MS,
 } from "@/lib/game/engine";
 import { mulberry32, type Rng } from "@/lib/game/rng";
-import { renderFrame } from "@/lib/game/renderer";
+import { renderFrame, resetFrameDamage } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
 import YearStage from "@/components/year/YearStage";
 
@@ -48,7 +47,6 @@ export default function GameCanvas({
   const stateRef = useRef<GameState | null>(null);
   const rafRef = useRef<number>(0);
   const lastTimeRef = useRef<number>(0);
-  const accRef = useRef(0);
   const rngRef = useRef<Rng | null>(null);
   const flapsRef = useRef<number[]>([]);
   const playSizeRef = useRef({ w: 0, h: 0 });
@@ -63,23 +61,27 @@ export default function GameCanvas({
     if (!canvas) return;
     const parent = canvas.parentElement;
     if (!parent) return;
+    // Ranked width/height are the CSS size at the first flap. Do not recreate
+    // state or follow a chrome-hide resize after that.
     if (startedRef.current) return;
 
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const dpr = coarse ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
     const w = parent.clientWidth;
     const h = parent.clientHeight || Math.min(window.innerHeight * 0.72, 640);
 
-    canvas.width = w * dpr;
-    canvas.height = h * dpr;
+    canvas.width = Math.max(1, Math.floor(w * dpr));
+    canvas.height = Math.max(1, Math.floor(h * dpr));
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     rngRef.current = ranked ? mulberry32(rankedSeed >>> 0) : null;
     flapsRef.current = [];
     playSizeRef.current = { w, h };
+    resetFrameDamage();
     stateRef.current = createInitialState(w, h, highScore, rngRef.current || undefined);
     setReady(true);
   }, [highScore, ranked, rankedSeed]);
@@ -88,41 +90,36 @@ export default function GameCanvas({
     if (!enabled || !ready) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
     if (!ctx) return;
 
     const loop = (time: number) => {
       if (!stateRef.current) return;
-      const viewW = canvas.clientWidth;
-      const viewH = canvas.clientHeight;
+      const viewW = playSizeRef.current.w || canvas.width;
+      const viewH = playSizeRef.current.h || canvas.height;
 
       if (ranked) {
-        const raw = lastTimeRef.current ? time - lastTimeRef.current : RANKED_TICK_MS;
+        // One step per frame. A catch-up loop makes a slow frame slower
+        // and desyncs the live run from the server replay.
         lastTimeRef.current = time;
-        accRef.current += Math.min(raw, RANKED_TICK_MS * 5);
-        let steps = 0;
-        while (accRef.current >= RANKED_TICK_MS && steps < 5 && !stateRef.current.isGameOver) {
-          accRef.current -= RANKED_TICK_MS;
-          steps += 1;
-          const prev = stateRef.current;
-          const pw = playSizeRef.current.w || viewW;
-          const ph = playSizeRef.current.h || viewH;
-          const next = updateGame(prev, RANKED_DT, pw, ph, rngRef.current || Math.random);
-          stateRef.current = next;
-          if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
-          if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
-            gameOverSent.current = true;
-            onGameOver(next.score, next.distance, {
-              score: next.score,
-              distance: next.distance,
-              flaps: flapsRef.current.slice(),
-              frames: next.frame,
-              width: pw,
-              height: ph,
-            });
-          }
+        const prev = stateRef.current;
+        const pw = playSizeRef.current.w || viewW;
+        const ph = playSizeRef.current.h || viewH;
+        const next = updateGame(prev, RANKED_DT, pw, ph, rngRef.current || Math.random);
+        stateRef.current = next;
+        if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
+        if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
+          gameOverSent.current = true;
+          onGameOver(next.score, next.distance, {
+            score: next.score,
+            distance: next.distance,
+            flaps: flapsRef.current.slice(),
+            frames: next.frame,
+            width: pw,
+            height: ph,
+          });
         }
-        renderFrame(ctx, stateRef.current, viewW, viewH);
+        renderFrame(ctx, next, viewW, viewH, ranked);
       } else {
         const dt = Math.min(
           Math.max(lastTimeRef.current ? (time - lastTimeRef.current) / 16.666 : 1, 0.5),
@@ -133,7 +130,7 @@ export default function GameCanvas({
         const next = updateGame(prev, dt, viewW, viewH, Math.random);
         stateRef.current = next;
         if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
-        renderFrame(ctx, next, viewW, viewH);
+        renderFrame(ctx, next, viewW, viewH, ranked);
         if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
           gameOverSent.current = true;
           onGameOver(next.score, next.distance);
@@ -184,11 +181,15 @@ export default function GameCanvas({
   }, [resize]);
 
   return (
-    <div className={`relative w-full h-full min-h-[320px] overflow-hidden ${className}`}>
-      <YearStage year={year} />
+    <div
+      className={`relative w-full h-full min-h-[320px] overflow-hidden ${className}`}
+      style={{ isolation: "isolate" }}
+    >
+      <YearStage year={year} live={ranked} />
       <canvas
         ref={canvasRef}
-        className="relative z-10 w-full h-full rounded-xl bg-transparent cursor-pointer"
+        className="relative z-10 h-full w-full bg-transparent cursor-pointer touch-none"
+        style={{ transform: "translateZ(0)", contain: "strict", willChange: "transform" }}
         onClick={doFlap}
         onTouchStart={(e) => {
           e.preventDefault();
