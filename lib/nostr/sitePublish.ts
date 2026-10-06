@@ -84,7 +84,10 @@ export async function publishAttestedScore(params: {
       ["paid", String(ENTRY_FEE_SATS)],
       ["client", "holdbtc"],
     ],
-    content: `Hold BTC attested score: ${params.score} pips`,
+    content:
+      `Hold BTC attestation · ${params.score.toLocaleString("en-US")} pips · year ` +
+      `${2008 + Math.floor(Math.max(0, params.score) / 1000)} · replay-checked server-side · ` +
+      `nostr:${nip19.npubEncode(params.playerPubkey.toLowerCase())} · holdbtc.io`,
   };
 
   const event = finalizeEvent(template, sk);
