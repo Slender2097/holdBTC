@@ -70,15 +70,26 @@ function buildScoreTemplate(score: number, distance: number): EventTemplate {
 
 function buildNoteTemplate(score: number, distance: number): EventTemplate {
   const year = 2008 + Math.floor(Math.max(0, score) / 1000);
+  const pips = score.toLocaleString("en-US");
+  const image = "https://holdbtc.io/hb.jpg";
   const text =
-    `Year ${year} on Hold BTC — ${score.toLocaleString("en-US")} pips.\n` +
-    `Ranked run, replay-checked by the server before it counted.\n` +
-    `https://holdbtc.io`;
+    `Still holding true BTC history!\n\n` +
+    `Hold Bitcoin until ${year}\n` +
+    `${pips} pips.\n\n` +
+    `https://holdbtc.io\n\n` +
+    image;
 
   return {
     kind: 1,
     created_at: Math.floor(Date.now() / 1000),
-    tags: [["t", "holdbtc"], ["client", "holdbtc"]],
+    tags: [
+      ["t", "holdbtc"],
+      ["t", "bitcoin"],
+      ["r", "https://holdbtc.io"],
+      ["r", image],
+      ["imeta", `url ${image}`, "m image/jpeg"],
+      ["client", "holdbtc"],
+    ],
     content: text,
   };
 }
