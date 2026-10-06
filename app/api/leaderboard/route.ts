@@ -109,6 +109,18 @@ function readCache(key: string) {
   return null;
 }
 
+
+function periodStart(period: "week" | "month"): number {
+  const now = new Date();
+  if (period === "month") {
+    return Math.floor(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1) / 1000);
+  }
+  const daysSinceMonday = (now.getUTCDay() + 6) % 7;
+  return Math.floor(
+    Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() - daysSinceMonday) / 1000
+  );
+}
+
 export async function GET(req: NextRequest) {
   const limit = rateLimit(`board:${clientIp(req)}`, 30, 60_000);
   if (!limit.ok) {
@@ -116,16 +128,19 @@ export async function GET(req: NextRequest) {
   }
 
   const tab = req.nextUrl.searchParams.get("tab") === "following" ? "following" : "global";
+  const periodParam = req.nextUrl.searchParams.get("period");
+  const period = periodParam === "week" || periodParam === "month" ? periodParam : "all";
   const viewer = String(req.nextUrl.searchParams.get("pubkey") || "").trim().toLowerCase();
-  const cacheKey = tab === "following" && isHexPubkey(viewer) ? `f:${viewer}` : "g";
+  const cacheKey = `${tab}:${period}:${tab === "following" && isHexPubkey(viewer) ? viewer : "g"}`;
 
   const cachedEntries = readCache(cacheKey);
   if (cachedEntries) {
-    return NextResponse.json({ entries: cachedEntries, tab });
+    return NextResponse.json({ entries: cachedEntries, tab, period });
   }
 
   try {
-    let scores = await fetchAttestedScores(50);
+    const since = period === "all" ? 0 : periodStart(period);
+    let scores = await fetchAttestedScores(50, since);
 
     if (tab === "following") {
       if (!isHexPubkey(viewer)) {
@@ -155,7 +170,7 @@ export async function GET(req: NextRequest) {
     });
 
     cache.set(cacheKey, { at: Date.now(), entries });
-    return NextResponse.json({ entries, tab });
+    return NextResponse.json({ entries, tab, period });
   } catch (err) {
     console.error("leaderboard failed:", err);
     return NextResponse.json({ entries: [], error: "Leaderboard unavailable" }, { status: 502 });

@@ -115,7 +115,7 @@ export async function publishAttestedScore(params: {
   return event;
 }
 
-export async function fetchAttestedScores(limit = 50): Promise<
+export async function fetchAttestedScores(limit = 50, since = 0): Promise<
   Array<{
     pubkey: string;
     score: number;
@@ -165,6 +165,7 @@ export async function fetchAttestedScores(limit = 50): Promise<
     const distance = parseInt(ev.tags.find((t) => t[0] === "distance")?.[1] || String(score), 10);
     const invoiceId = ev.tags.find((t) => t[0] === "d")?.[1] || ev.id;
     if (!player || !score || Number.isNaN(score)) continue;
+    if (since && ev.created_at < since) continue;
 
     const pk = player.toLowerCase();
     const existing = best.get(pk);

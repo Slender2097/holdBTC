@@ -28,7 +28,8 @@ interface LeaderboardProps {
   personalBest?: number;
 }
 
-type Tab = "global" | "following";
+type Tab = "global" | "week" | "month" | "following";
+type Period = "all" | "week" | "month";
 
 function yearFromScore(score: number): number {
   return 2008 + Math.floor(Math.max(0, score) / 1000);
@@ -58,7 +59,11 @@ export default function Leaderboard({
       return;
     }
 
-    const qs = new URLSearchParams({ tab });
+    const period: Period = tab === "week" || tab === "month" ? tab : "all";
+    const qs = new URLSearchParams({
+      tab: tab === "following" ? "following" : "global",
+      period,
+    });
     if (currentUserPubkey) qs.set("pubkey", currentUserPubkey);
 
     fetch(`/api/leaderboard?${qs.toString()}`, { cache: "no-store" })
@@ -87,29 +92,28 @@ export default function Leaderboard({
   return (
     <div className="alien-panel rounded-xl overflow-hidden">
       <div className="px-3 pt-3 border-b border-alien-border">
-        <div className="flex items-center gap-1 mb-2">
-          <button
-            type="button"
-            onClick={() => setTab("global")}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-mono tracking-[0.14em] uppercase ${
-              tab === "global"
-                ? "bg-alien-cyan/15 text-alien-cyan"
-                : "text-alien-muted hover:text-white"
-            }`}
-          >
-            Global Rank
-          </button>
-          <button
-            type="button"
-            onClick={() => setTab("following")}
-            className={`px-2.5 py-1 rounded-md text-[10px] font-mono tracking-[0.14em] uppercase ${
-              tab === "following"
-                ? "bg-alien-cyan/15 text-alien-cyan"
-                : "text-alien-muted hover:text-white"
-            }`}
-          >
-            Following
-          </button>
+        <div className="flex flex-wrap items-center gap-1 mb-2">
+          {(
+            [
+              ["global", "Global"],
+              ["week", "Week"],
+              ["month", "Month"],
+              ["following", "Following"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setTab(id)}
+              className={`px-2.5 py-1 rounded-md text-[10px] font-mono tracking-[0.14em] uppercase ${
+                tab === id
+                  ? "bg-alien-cyan/15 text-alien-cyan"
+                  : "text-alien-muted hover:text-white"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
           {personalBest !== undefined && personalBest > 0 && (
             <span className="ml-auto text-[10px] text-alien-muted font-mono">
               BEST <span className="text-alien-green">{personalBest}</span>
@@ -118,7 +122,7 @@ export default function Leaderboard({
         </div>
       </div>
 
-      <div className="max-h-[380px] overflow-y-auto">
+      <div className="max-h-[260px] overflow-y-auto overscroll-contain">
         {loading && (
           <div className="p-6 text-center text-alien-muted text-xs font-mono animate-pulse">
             SCANNING RELAYS...
@@ -129,7 +133,7 @@ export default function Leaderboard({
         )}
         {!loading && !error && entries.length === 0 && (
           <div className="p-6 text-center text-alien-muted text-xs font-mono">
-            {tab === "following" ? "NO FOLLOWED PLAYERS YET" : "NO SIGNALS YET"}
+            {tab === "following" ? "NO FOLLOWED PLAYERS YET" : tab === "week" ? "NO SCORES THIS WEEK" : tab === "month" ? "NO SCORES THIS MONTH" : "NO SIGNALS YET"}
           </div>
         )}
 
