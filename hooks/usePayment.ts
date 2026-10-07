@@ -19,10 +19,31 @@ export function usePayment() {
   const [gamesPlayed, setGamesPlayed] = useState(0);
   const [rankedToken, setRankedToken] = useState<string | null>(null);
   const [rankedSeed, setRankedSeed] = useState<number | null>(null);
+  const [statsReady, setStatsReady] = useState(false);
 
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pubkeyRef = useRef<string | null>(null);
   const signerRef = useRef<AuthSigner | undefined>(undefined);
+
+  useEffect(() => {
+    try {
+      setGamesPlayed(parseInt(localStorage.getItem("holdbtc_games") || "0", 10) || 0);
+      setTotalPaidSats(parseInt(localStorage.getItem("holdbtc_sats") || "0", 10) || 0);
+    } catch {
+      /* ignore */
+    }
+    setStatsReady(true);
+  }, []);
+
+  useEffect(() => {
+    if (!statsReady) return;
+    try {
+      localStorage.setItem("holdbtc_games", String(gamesPlayed));
+      localStorage.setItem("holdbtc_sats", String(totalPaidSats));
+    } catch {
+      /* ignore */
+    }
+  }, [statsReady, gamesPlayed, totalPaidSats]);
 
   const stopPoll = useCallback(() => {
     if (pollRef.current) {
