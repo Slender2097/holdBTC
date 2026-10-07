@@ -4,6 +4,7 @@ import { strikeConfigured, strikeCreateInvoice } from "@/lib/payments/strike";
 import { ENTRY_FEE_SATS, isHexPubkey, makeClaimSecret } from "@/lib/security/rankedToken";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 import { verifyAuthEvent } from "@/lib/nostr/verifyAuth";
+import { isBanned } from "@/lib/security/blockList";
 
 export async function POST(req: NextRequest) {
   const ip = clientIp(req);
@@ -34,6 +35,9 @@ export async function POST(req: NextRequest) {
       { error: "Login to Nostr before creating an invoice" },
       { status: 401 }
     );
+  }
+  if (isBanned(pubkey)) {
+    return NextResponse.json({ error: "This account cannot start a ranked run" }, { status: 403 });
   }
 
   const pkLimit = rateLimit(`invoice-pk:${pubkey}`, 8, 60 * 60 * 1000);

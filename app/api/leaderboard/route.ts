@@ -1,10 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAttestedScores } from "@/lib/nostr/sitePublish";
+import { isBlockedPubkey } from "@/lib/security/blocklist";
 import { nip19 } from "nostr-tools";
 import { SimplePool, type Event, type Filter } from "nostr-tools";
 import { safeHttpsImageUrl } from "@/lib/security/safeUrl";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 import { isHexPubkey } from "@/lib/security/rankedToken";
+import { isBanned, publicName } from "@/lib/security/blockList";
 
 const PROFILE_RELAYS = [
   "wss://purplepag.es",
@@ -141,6 +143,8 @@ export async function GET(req: NextRequest) {
   try {
     const since = period === "all" ? 0 : periodStart(period);
     let scores = await fetchAttestedScores(50, since);
+    scores = scores.filter((s) => !isBanned(s.pubkey));
+    scores = scores.filter((s) => !isBlockedPubkey(s.pubkey));
 
     if (tab === "following") {
       if (!isHexPubkey(viewer)) {
@@ -165,7 +169,7 @@ export async function GET(req: NextRequest) {
         created_at: s.created_at,
         eventId: s.eventId,
         profile: profile || undefined,
-        displayName: profile?.display_name || profile?.name || undefined,
+        displayName: publicName(profile?.display_name || profile?.name),
       };
     });
 

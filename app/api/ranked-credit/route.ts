@@ -5,6 +5,7 @@ import { findScoreByInvoice } from "@/lib/nostr/sitePublish";
 import { verifyAuthEvent } from "@/lib/nostr/verifyAuth";
 import { getInvoiceRecord, tryMarkIssued } from "@/lib/security/invoiceStore";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
+import { isBanned } from "@/lib/security/blockList";
 import {
   ENTRY_FEE_SATS,
   isHexPubkey,
@@ -37,6 +38,9 @@ export async function POST(req: NextRequest) {
 
   if (!isSafeInvoiceId(invoiceId) || !isHexPubkey(pubkey)) {
     return NextResponse.json({ error: "Missing invoice or invalid pubkey" }, { status: 400 });
+  }
+  if (isBanned(pubkey)) {
+    return NextResponse.json({ error: "This account cannot start a ranked run" }, { status: 403 });
   }
 
   const authError = verifyAuthEvent(body.authEvent, pubkey, "credit", invoiceId);

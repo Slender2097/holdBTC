@@ -191,7 +191,7 @@ export default function HomePage() {
             </p>
           )}
 
-          <div className="relative rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh] max-lg:fixed max-lg:inset-0 max-lg:z-40 max-lg:max-h-none max-lg:w-screen max-lg:rounded-none max-lg:border-0">
+          <div className="relative isolate rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh] max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-[100svh] max-lg:max-h-[100svh] max-lg:z-40 max-lg:w-screen max-lg:aspect-auto max-lg:rounded-none max-lg:border-0 max-lg:shadow-none">
             <div className="h-full w-full">
               <GameCanvas
                 key={`${gameKey}-${payment.hasPaid ? payment.rankedSeed ?? "r" : "free"}`}
@@ -239,6 +239,9 @@ export default function HomePage() {
 
       <footer className="border-t border-alien-border/60 py-4 text-center text-[10px] text-alien-muted tracking-[0.25em] uppercase">
         HOLD BTC — ALIEN TECHNOLOGY — holdbtc.io
+        <a href="/privacy" className="block mt-2 tracking-[0.18em] text-alien-cyan/80 hover:text-alien-cyan">
+          Privacy
+        </a>
       </footer>
 
       {payment.invoice && !payment.hasPaid && (
