@@ -209,8 +209,9 @@ export default function NostrLogin({
             <p className="text-[10px] font-mono tracking-[0.18em] uppercase text-alien-cyan">Terms of Service</p>
             <h2 className="mt-2 text-lg text-white">Before you connect</h2>
             <p className="mt-3 text-sm text-alien-muted leading-relaxed">
+              Hold BTC is an experimental project. Its aim is a fun way to fly through Bitcoin history.
               A ranked entry is 1000 sats and is not refunded. You are responsible for your Nostr key.
-              Hold BTC does not take responsibility for misuse of a Nostr account. 
+              Hold BTC does not take responsibility for misuse of a Nostr account.
               Continue means you agree to these terms.
             </p>
             <a href="/terms" className="mt-3 inline-block text-sm text-alien-cyan underline">
