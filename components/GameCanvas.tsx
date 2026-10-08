@@ -12,6 +12,7 @@ import { mulberry32, type Rng } from "@/lib/game/rng";
 import { renderFrame, resetFrameDamage } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
 import YearStage from "@/components/year/YearStage";
+import { musicMuted, playSfx, startMusic, toggleMusic } from "@/lib/game/music";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -110,6 +111,7 @@ export default function GameCanvas({
         if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
         if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
           gameOverSent.current = true;
+          playSfx("lose");
           onGameOver(next.score, next.distance, {
             score: next.score,
             distance: next.distance,
@@ -133,6 +135,7 @@ export default function GameCanvas({
         renderFrame(ctx, next, viewW, viewH, ranked);
         if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
           gameOverSent.current = true;
+          playSfx("lose");
           onGameOver(next.score, next.distance);
         }
       }
@@ -154,6 +157,8 @@ export default function GameCanvas({
       onRunStart?.();
     }
     startedRef.current = true;
+    startMusic();
+    playSfx("flap");
     flapsRef.current.push(stateRef.current.frame);
     stateRef.current = flap(stateRef.current);
   }, [enabled, onRunStart]);
@@ -186,6 +191,18 @@ export default function GameCanvas({
       style={{ isolation: "isolate" }}
     >
       <YearStage year={year} live={ranked} />
+      <button
+        type="button"
+        aria-label="Mute music"
+        onClick={(e) => {
+          e.stopPropagation();
+          toggleMusic();
+          (e.currentTarget as HTMLButtonElement).textContent = musicMuted() ? "MUSIC OFF" : "MUSIC";
+        }}
+        className="absolute right-2 top-2 z-20 rounded border border-white/20 bg-black/40 px-2 py-1 text-[10px] font-mono text-white/80"
+      >
+        MUSIC
+      </button>
       <canvas
         ref={canvasRef}
         className="relative z-10 h-full w-full bg-transparent cursor-pointer touch-none"
