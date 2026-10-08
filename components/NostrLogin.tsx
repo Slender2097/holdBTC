@@ -26,6 +26,13 @@ export default function NostrLogin({
   const [nsecInput, setNsecInput] = useState("");
   const [termsOpen, setTermsOpen] = useState(false);
   const [pending, setPending] = useState<"nip07" | "nsec" | null>(null);
+  const [hideError, setHideError] = useState(false);
+
+  useEffect(() => {
+    setHideError(false);
+  }, [error]);
+
+  const visibleError = hideError ? null : error;
 
   const termsAccepted = () => {
     try {
@@ -139,7 +146,7 @@ export default function NostrLogin({
     <div ref={wrapRef} className="relative flex items-center">
       <div className="flex items-center gap-2">
         <button
-          onClick={() => { if (!askTerms("nip07")) onLoginNip07(); }}
+          onClick={() => { setHideError(true); if (!askTerms("nip07")) onLoginNip07(); }}
           disabled={loading}
           className="h-11 px-4 text-sm font-semibold rounded-full bg-alien-purple hover:bg-alien-purple/90 text-white transition disabled:opacity-50 tracking-wide border border-alien-purple/50 shadow-[0_0_12px_rgba(177,78,255,0.25)]"
         >
@@ -187,19 +194,22 @@ export default function NostrLogin({
                 GO
               </button>
             </div>
-            {error && (
+            {visibleError && (
               <p className="mt-2 text-xs text-red-400 font-mono leading-relaxed">
-                {error}
+                {visibleError}
               </p>
             )}
           </div>
         </div>
       )}
 
-      {!showNsec && error && (
-        <p className="pointer-events-none absolute top-[calc(100%+10px)] right-0 max-w-[16rem] text-xs text-red-400 font-mono leading-relaxed bg-alien-deep/95 border border-red-500/20 rounded-xl px-3 py-2">
-          {error}
-        </p>
+      {!showNsec && visibleError && (
+        <div className="absolute top-[calc(100%+10px)] right-0 z-50 max-w-[16rem] text-xs text-red-400 font-mono leading-relaxed bg-alien-deep/95 border border-red-500/20 rounded-xl px-3 py-2">
+          <p>{visibleError}</p>
+          <button type="button" onClick={() => setHideError(true)} className="mt-2 text-[10px] tracking-[0.14em] uppercase text-white/80">
+            Close
+          </button>
+        </div>
       )}
     </div>
 
@@ -209,7 +219,7 @@ export default function NostrLogin({
             <p className="text-[10px] font-mono tracking-[0.18em] uppercase text-alien-cyan">Terms of Service</p>
             <h2 className="mt-2 text-lg text-white">Before you connect</h2>
             <p className="mt-3 text-sm text-alien-muted leading-relaxed">
-              Hold BTC is an experimental project. Its aim is a fun way to fly through Bitcoin history.
+              Hold BTC is an experimental project. Its aim is a fun way to fly through Bitcoin history. Use it carefully.
               A ranked entry is 1000 sats and is not refunded. You are responsible for your Nostr key.
               Hold BTC does not take responsibility for misuse of a Nostr account.
               Continue means you agree to these terms.
