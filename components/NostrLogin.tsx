@@ -24,6 +24,36 @@ export default function NostrLogin({
 }: NostrLoginProps) {
   const [showNsec, setShowNsec] = useState(false);
   const [nsecInput, setNsecInput] = useState("");
+  const [termsOpen, setTermsOpen] = useState(false);
+  const [pending, setPending] = useState<"nip07" | "nsec" | null>(null);
+
+  const termsAccepted = () => {
+    try {
+      return localStorage.getItem("holdbtc_terms") === "1";
+    } catch {
+      return false;
+    }
+  };
+
+  const askTerms = (next: "nip07" | "nsec") => {
+    if (termsAccepted()) return false;
+    setPending(next);
+    setTermsOpen(true);
+    return true;
+  };
+
+  const acceptTerms = () => {
+    try {
+      localStorage.setItem("holdbtc_terms", "1");
+    } catch {
+      /* ignore */
+    }
+    const next = pending;
+    setTermsOpen(false);
+    setPending(null);
+    if (next === "nip07") onLoginNip07();
+    if (next === "nsec") setShowNsec(true);
+  };
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -105,10 +135,11 @@ export default function NostrLogin({
   };
 
   return (
+    <>
     <div ref={wrapRef} className="relative flex items-center">
       <div className="flex items-center gap-2">
         <button
-          onClick={onLoginNip07}
+          onClick={() => { if (!askTerms("nip07")) onLoginNip07(); }}
           disabled={loading}
           className="h-11 px-4 text-sm font-semibold rounded-full bg-alien-purple hover:bg-alien-purple/90 text-white transition disabled:opacity-50 tracking-wide border border-alien-purple/50 shadow-[0_0_12px_rgba(177,78,255,0.25)]"
         >
@@ -116,7 +147,7 @@ export default function NostrLogin({
         </button>
 
         <button
-          onClick={() => setShowNsec((v) => !v)}
+          onClick={() => { if (showNsec) { setShowNsec(false); return; } if (!askTerms("nsec")) setShowNsec(true); }}
           aria-expanded={showNsec}
           className={`h-11 px-4 text-sm font-mono rounded-full border transition tracking-wide ${
             showNsec
@@ -171,5 +202,39 @@ export default function NostrLogin({
         </p>
       )}
     </div>
+
+      {termsOpen && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded-xl border border-alien-border bg-alien-deep p-5 text-left shadow-glow">
+            <p className="text-[10px] font-mono tracking-[0.18em] uppercase text-alien-cyan">Terms of Service</p>
+            <h2 className="mt-2 text-lg text-white">Before you connect</h2>
+            <p className="mt-3 text-sm text-alien-muted leading-relaxed">
+              A ranked entry is 1000 sats and is not refunded. You are responsible for your Nostr key.
+              Hold BTC does not take responsibility for misuse of a Nostr account. 
+              Continue means you agree to these terms.
+            </p>
+            <a href="/terms" className="mt-3 inline-block text-sm text-alien-cyan underline">
+              Read the terms
+            </a>
+            <div className="mt-5 flex gap-2">
+              <button
+                type="button"
+                onClick={acceptTerms}
+                className="h-10 px-4 rounded-lg bg-alien-cyan text-alien-void text-sm font-semibold"
+              >
+                Continue
+              </button>
+              <button
+                type="button"
+                onClick={() => { setTermsOpen(false); setPending(null); }}
+                className="h-10 px-4 rounded-lg border border-alien-border text-sm text-alien-muted"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

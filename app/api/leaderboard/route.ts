@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { fetchAttestedScores } from "@/lib/nostr/sitePublish";
-import { isBlockedPubkey } from "@/lib/security/blocklist";
 import { nip19 } from "nostr-tools";
 import { SimplePool, type Event, type Filter } from "nostr-tools";
 import { safeHttpsImageUrl } from "@/lib/security/safeUrl";
@@ -144,7 +143,6 @@ export async function GET(req: NextRequest) {
     const since = period === "all" ? 0 : periodStart(period);
     let scores = await fetchAttestedScores(50, since);
     scores = scores.filter((s) => !isBanned(s.pubkey));
-    scores = scores.filter((s) => !isBlockedPubkey(s.pubkey));
 
     if (tab === "following") {
       if (!isHexPubkey(viewer)) {
