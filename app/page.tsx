@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import GameCanvas from "@/components/GameCanvas";
 import Leaderboard from "@/components/Leaderboard";
 import Header from "@/components/Header";
@@ -21,6 +21,7 @@ export default function HomePage() {
   const [personalBest, setPersonalBest] = useState(0);
   const [isPersonalBest, setIsPersonalBest] = useState(false);
   const [wasRanked, setWasRanked] = useState(false);
+  const rankedModalRef = useRef(false);
   const [scorePublished, setScorePublished] = useState(false);
   const [notePublished, setNotePublished] = useState(false);
   const [notePublishing, setNotePublishing] = useState(false);
@@ -58,8 +59,10 @@ export default function HomePage() {
       // Capture whether this run was ranked BEFORE consuming credit
       const ranked = payment.hasPaid;
       const token = payment.rankedToken;
+      if (rankedModalRef.current && !ranked) return;
 
       if (ranked) {
+        rankedModalRef.current = true;
         payment.consumePayment();
       }
 
@@ -111,6 +114,7 @@ export default function HomePage() {
   );
 
   const handlePlayAgain = useCallback(() => {
+    rankedModalRef.current = false;
     setShowGameOver(false);
     setLastScore(null);
     setWasRanked(false);

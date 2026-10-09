@@ -143,7 +143,12 @@ export function useNostr() {
         if (!saved || cancelled) return;
 
         if (saved.mode === "nip07") {
-          const pk = await getNip07PublicKey();
+          const pk = await Promise.race([
+        getNip07PublicKey(),
+        new Promise<string>((_, reject) =>
+          setTimeout(() => reject(new Error("Extension login was closed. Try again.")), 8000)
+        ),
+      ]);
           if (!pk || pk !== saved.pubkey) {
             clearUserStorage();
             return;

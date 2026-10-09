@@ -188,3 +188,25 @@ export async function fetchAttestedScores(limit = 50, since = 0): Promise<
     .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
+
+export async function publishSignedNote(event: Event): Promise<number> {
+  const p = getPool();
+  let acks = 0;
+  await Promise.all(
+    DEFAULT_RELAYS.map(async (url) => {
+      try {
+        await p.ensureRelay(url);
+        const pub = p.publish([url], event);
+        const list = Array.isArray(pub) ? pub : [pub];
+        await Promise.race([
+          Promise.any(list.map((x: Promise<unknown>) => x)),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 5000)),
+        ]);
+        acks += 1;
+      } catch (err) {
+        console.warn("Share relay failed:", url, err);
+      }
+    })
+  );
+  return acks;
+}

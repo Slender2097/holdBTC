@@ -180,8 +180,20 @@ export async function publishNote(params: {
   const signed = await signTemplate(template, sk);
   if (!signed) return null;
 
-  const accepted = await publishToRelays(signed, relays);
-  console.log("Note event", signed.id, "accepted by", accepted);
+  const res = await fetch("/api/share-note", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ event: signed }),
+  });
+  if (!res.ok) {
+    let message = "Share failed";
+    try {
+      message = (await res.json()).error || message;
+    } catch {
+      message = res.status === 404 ? "Share route is missing" : message;
+    }
+    throw new Error(message);
+  }
   return signed;
 }
 
