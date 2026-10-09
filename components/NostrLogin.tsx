@@ -28,8 +28,17 @@ export default function NostrLogin({
   const [nsecInput, setNsecInput] = useState("");
   const [termsOpen, setTermsOpen] = useState(false);
   const [pending, setPending] = useState<"nip07" | "nsec" | null>(null);
-  const [dismissed, setDismissed] = useState(false);
-  const visibleError = dismissed ? null : error;
+  const [errorHidden, setErrorHidden] = useState(false);
+  const lastErrorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (error !== lastErrorRef.current) {
+      lastErrorRef.current = error;
+      setErrorHidden(false);
+    }
+  }, [error]);
+
+  const visibleError = errorHidden ? null : error;
 
   const termsAccepted = () => {
     try {
@@ -58,6 +67,7 @@ export default function NostrLogin({
     if (next === "nip07") onLoginNip07();
     if (next === "nsec") setShowNsec(true);
   };
+
   const wrapRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -144,12 +154,11 @@ export default function NostrLogin({
       <div className="flex items-center gap-2">
         <button
           onClick={() => {
-            if (error && !dismissed) {
-              setDismissed(true);
+            if (visibleError) {
+              setErrorHidden(true);
               onCancelNip07?.();
               return;
             }
-            setDismissed(false);
             if (askTerms("nip07")) return;
             onLoginNip07();
           }}

@@ -8,6 +8,7 @@ interface HeaderProps {
   loading: boolean;
   error: string | null;
   onLoginNip07: () => void;
+  onCancelNip07?: () => void;
   onLoginNsec: (nsec: string) => boolean;
   onLogout: () => void;
 }
@@ -17,6 +18,7 @@ export default function Header({
   loading,
   error,
   onLoginNip07,
+  onCancelNip07,
   onLoginNsec,
   onLogout,
 }: HeaderProps) {
@@ -42,12 +44,12 @@ export default function Header({
             </p>
           </div>
         </a>
-
         <NostrLogin
           user={user}
           loading={loading}
           error={error}
           onLoginNip07={onLoginNip07}
+          onCancelNip07={onCancelNip07}
           onLoginNsec={onLoginNsec}
           onLogout={onLogout}
         />

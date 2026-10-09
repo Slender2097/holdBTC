@@ -305,19 +305,43 @@ export async function fetchLeaderboard(limit = 40): Promise<ScoreEntry[]> {
   }
 }
 
-export async function getNip07PublicKey(): Promise<string | null> {
-  if (typeof window === "undefined") return null;
+export type Nip07FailureReason = "unavailable" | "cancelled";
+
+export class Nip07Error extends Error {
+  readonly reason: Nip07FailureReason;
+  constructor(reason: Nip07FailureReason, message: string) {
+    super(message);
+    this.name = "Nip07Error";
+    this.reason = reason;
+  }
+}
+
+export type Nip07LoginResult =
+  | { status: "ok"; pubkey: string }
+  | { status: "missing" }
+  | { status: "cancelled" }
+  | { status: "locked" };
+
+const EXTENSION_LOCKED = /until the next reload/i;
+
+export async function requestNip07PublicKey(): Promise<Nip07LoginResult> {
+  if (typeof window === "undefined") return { status: "missing" };
   const nostr = (window as any).nostr;
-  if (!nostr?.getPublicKey) return null;
+  if (!nostr?.getPublicKey) return { status: "missing" };
   try {
-    return await nostr.getPublicKey();
+    const pubkey = await nostr.getPublicKey();
+    return pubkey ? { status: "ok", pubkey } : { status: "cancelled" };
   } catch (err: any) {
     const msg = String(err?.message || err || "");
-    if (/reject|denied|cancel/i.test(msg)) {
-      console.warn("Nostr extension: user rejected login");
-    }
-    return null;
+    if (EXTENSION_LOCKED.test(msg)) return { status: "locked" };
+    console.warn("Nostr extension: login not approved", msg);
+    return { status: "cancelled" };
   }
+}
+
+export async function getNip07PublicKey(): Promise<string | null> {
+  const result = await requestNip07PublicKey();
+  return result.status === "ok" ? result.pubkey : null;
 }
 
 export async function publishScoreSmart(params: {

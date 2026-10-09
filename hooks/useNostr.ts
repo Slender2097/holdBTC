@@ -5,6 +5,7 @@ import {
   createEphemeralKey,
   fetchProfiles,
   getNip07PublicKey,
+  requestNip07PublicKey,
   publishScore as publishScoreEvent,
   publishNote as publishNoteEvent,
   type NostrProfile,
@@ -24,6 +25,7 @@ export interface NostrUser {
 
 const STORAGE_KEY = "holdbtc_nostr_user";
 const SESSION_SK_KEY = "holdbtc_nsec_sk";
+const NIP07_RESUME_KEY = "holdbtc_nip07_resume";
 
 function skToHex(sk: Uint8Array): string {
   return Array.from(sk)
@@ -108,6 +110,33 @@ function clearUserStorage() {
   clearSessionSk();
 }
 
+
+function markNip07Resume(): boolean {
+  try {
+    sessionStorage.setItem(NIP07_RESUME_KEY, "1");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function takeNip07Resume(): boolean {
+  try {
+    const marked = sessionStorage.getItem(NIP07_RESUME_KEY) === "1";
+    sessionStorage.removeItem(NIP07_RESUME_KEY);
+    return marked;
+  } catch {
+    return false;
+  }
+}
+
+function whenPageLoaded(): Promise<void> {
+  if (document.readyState === "complete") return Promise.resolve();
+  return new Promise((resolve) => {
+    window.addEventListener("load", () => resolve(), { once: true });
+  });
+}
+
 export function useNostr() {
   const [user, setUser] = useState<NostrUser | null>(null);
   const [loading, setLoading] = useState(true);
@@ -145,11 +174,11 @@ export function useNostr() {
 
         if (saved.mode === "nip07") {
           const pk = await Promise.race([
-        getNip07PublicKey(),
-        new Promise<string>((_, reject) =>
-          setTimeout(() => reject(new Error("Extension login was closed. Try again.")), 8000)
-        ),
-      ]);
+            getNip07PublicKey(),
+            new Promise<string>((_, reject) =>
+              setTimeout(() => reject(new Error("Extension login was closed. Try again.")), 8000)
+            ),
+          ]);
           if (!pk || pk !== saved.pubkey) {
             clearUserStorage();
             return;
@@ -195,38 +224,57 @@ export function useNostr() {
     setError(null);
   }, []);
 
-  const loginWithNip07 = useCallback(async () => {
-    const attempt = ++nip07Attempt.current;
-    setError(null);
-    setLoading(true);
-    try {
-      const pk = await getNip07PublicKey();
-      if (attempt !== nip07Attempt.current) return;
-      if (!pk) {
-        throw new Error("Login cancelled in the extension");
+  const runNip07Login = useCallback(
+    async (resumed: boolean) => {
+      const attempt = ++nip07Attempt.current;
+      let reloading = false;
+      setError(null);
+      setLoading(true);
+      try {
+        if (resumed) await whenPageLoaded();
+        const result = await requestNip07PublicKey();
+        if (attempt !== nip07Attempt.current) return;
+        if (result.status === "locked") {
+          if (!resumed && markNip07Resume()) {
+            reloading = true;
+            window.location.reload();
+            return;
+          }
+          setError("Reload the page to use the extension again");
+          return;
+        }
+        if (result.status === "missing") {
+          setError("No Nostr extension found");
+          return;
+        }
+        if (result.status === "cancelled") {
+          setError("Login cancelled in the extension");
+          return;
+        }
+        const pk = result.pubkey;
+        skRef.current = null;
+        clearSessionSk();
+        const next: NostrUser = { pubkey: pk, npub: toNpub(pk), mode: "nip07" };
+        setUser(next);
+        saveUserToStorage(next);
+        loadProfile(pk);
+      } catch (e: any) {
+        if (attempt !== nip07Attempt.current) return;
+        setError(String(e?.message || e || "") || "Login failed");
+      } finally {
+        if (!reloading && attempt === nip07Attempt.current) setLoading(false);
       }
-      skRef.current = null;
-      clearSessionSk();
-      const next: NostrUser = {
-        pubkey: pk,
-        npub: toNpub(pk),
-        mode: "nip07",
-      };
-      setUser(next);
-      saveUserToStorage(next);
-      loadProfile(pk);
-    } catch (e: any) {
-      if (attempt !== nip07Attempt.current) return;
-      const msg = String(e?.message || e || "");
-      if (/reject|denied|cancel/i.test(msg)) {
-        setError("Login cancelled in the extension");
-      } else {
-        setError(msg || "Login failed");
-      }
-    } finally {
-      if (attempt === nip07Attempt.current) setLoading(false);
-    }
-  }, [loadProfile]);
+    },
+    [loadProfile]
+  );
+
+  const loginWithNip07 = useCallback(() => runNip07Login(false), [runNip07Login]);
+
+  useEffect(() => {
+    if (!takeNip07Resume()) return;
+    if (loadUserFromStorage()) return;
+    runNip07Login(true);
+  }, [runNip07Login]);
 
   const loginWithNsec = useCallback(
     (nsecOrHex: string) => {
@@ -240,7 +288,6 @@ export function useNostr() {
       const pk = getPublicKey(sk);
       skRef.current = sk;
       saveSessionSk(sk);
-
       const next: NostrUser = {
         pubkey: pk,
         npub: toNpub(pk),
@@ -279,11 +326,9 @@ export function useNostr() {
       if (skRef.current) {
         return finalizeEvent(template, skRef.current);
       }
-
       if (user?.mode === "nsec" || user?.mode === "ephemeral") {
         throw new Error("Paste your nsec again to sign. This tab no longer has the key.");
       }
-
       const nostr = typeof window !== "undefined" ? (window as any).nostr : null;
       if (nostr?.signEvent) {
         return nostr.signEvent(template);
