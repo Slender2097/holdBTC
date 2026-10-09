@@ -156,6 +156,7 @@ export default function HomePage() {
         loading={nostr.loading}
         error={nostr.error}
         onLoginNip07={nostr.loginWithNip07}
+        onCancelNip07={nostr.cancelNip07}
         onLoginNsec={nostr.loginWithNsec}
         onLogout={nostr.logout}
       />

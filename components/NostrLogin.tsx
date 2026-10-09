@@ -10,6 +10,7 @@ interface NostrLoginProps {
   loading: boolean;
   error: string | null;
   onLoginNip07: () => void;
+  onCancelNip07?: () => void;
   onLoginNsec: (nsec: string) => boolean;
   onLogout: () => void;
 }
@@ -19,6 +20,7 @@ export default function NostrLogin({
   loading,
   error,
   onLoginNip07,
+  onCancelNip07,
   onLoginNsec,
   onLogout,
 }: NostrLoginProps) {
@@ -26,13 +28,8 @@ export default function NostrLogin({
   const [nsecInput, setNsecInput] = useState("");
   const [termsOpen, setTermsOpen] = useState(false);
   const [pending, setPending] = useState<"nip07" | "nsec" | null>(null);
-  const [hideError, setHideError] = useState(false);
-
-  useEffect(() => {
-    setHideError(false);
-  }, [error]);
-
-  const visibleError = hideError ? null : error;
+  const [dismissed, setDismissed] = useState(false);
+  const visibleError = dismissed ? null : error;
 
   const termsAccepted = () => {
     try {
@@ -146,8 +143,16 @@ export default function NostrLogin({
     <div ref={wrapRef} className="relative flex items-center">
       <div className="flex items-center gap-2">
         <button
-          onClick={() => { setHideError(true); if (!askTerms("nip07")) onLoginNip07(); }}
-          disabled={loading}
+          onClick={() => {
+            if (error && !dismissed) {
+              setDismissed(true);
+              onCancelNip07?.();
+              return;
+            }
+            setDismissed(false);
+            if (askTerms("nip07")) return;
+            onLoginNip07();
+          }}
           className="h-11 px-4 text-sm font-semibold rounded-full bg-alien-purple hover:bg-alien-purple/90 text-white transition disabled:opacity-50 tracking-wide border border-alien-purple/50 shadow-[0_0_12px_rgba(177,78,255,0.25)]"
         >
           {loading ? "..." : "NOSTR EXTENSION"}
@@ -204,11 +209,8 @@ export default function NostrLogin({
       )}
 
       {!showNsec && visibleError && (
-        <div className="absolute top-[calc(100%+10px)] right-0 z-50 max-w-[16rem] text-xs text-red-400 font-mono leading-relaxed bg-alien-deep/95 border border-red-500/20 rounded-xl px-3 py-2">
+        <div className="pointer-events-none absolute top-[calc(100%+10px)] right-0 z-30 max-w-[16rem] text-xs text-red-400 font-mono leading-relaxed bg-alien-deep/95 border border-red-500/20 rounded-xl px-3 py-2">
           <p>{visibleError}</p>
-          <button type="button" onClick={() => setHideError(true)} className="mt-2 text-[10px] tracking-[0.14em] uppercase text-white/80">
-            Close
-          </button>
         </div>
       )}
     </div>

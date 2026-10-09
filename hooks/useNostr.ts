@@ -113,6 +113,7 @@ export function useNostr() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const skRef = useRef<Uint8Array | null>(null);
+  const nip07Attempt = useRef(0);
 
   const loadProfile = useCallback(async (pubkey: string) => {
     try {
@@ -188,15 +189,21 @@ export function useNostr() {
     };
   }, [loadProfile]);
 
+  const cancelNip07 = useCallback(() => {
+    nip07Attempt.current += 1;
+    setLoading(false);
+    setError(null);
+  }, []);
+
   const loginWithNip07 = useCallback(async () => {
+    const attempt = ++nip07Attempt.current;
     setError(null);
     setLoading(true);
     try {
       const pk = await getNip07PublicKey();
+      if (attempt !== nip07Attempt.current) return;
       if (!pk) {
-        throw new Error(
-          "Extension login failed or was cancelled. Approve the popup to continue."
-        );
+        throw new Error("Login cancelled in the extension");
       }
       skRef.current = null;
       clearSessionSk();
@@ -209,6 +216,7 @@ export function useNostr() {
       saveUserToStorage(next);
       loadProfile(pk);
     } catch (e: any) {
+      if (attempt !== nip07Attempt.current) return;
       const msg = String(e?.message || e || "");
       if (/reject|denied|cancel/i.test(msg)) {
         setError("Login cancelled in the extension");
@@ -216,7 +224,7 @@ export function useNostr() {
         setError(msg || "Login failed");
       }
     } finally {
-      setLoading(false);
+      if (attempt === nip07Attempt.current) setLoading(false);
     }
   }, [loadProfile]);
 
@@ -322,6 +330,7 @@ export function useNostr() {
     loading,
     error,
     loginWithNip07,
+    cancelNip07,
     loginWithNsec,
     loginEphemeral,
     logout,
