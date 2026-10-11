@@ -12,7 +12,7 @@ import { mulberry32, type Rng } from "@/lib/game/rng";
 import { renderFrame, resetFrameDamage } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
 import YearStage from "@/components/year/YearStage";
-import { musicMuted, playSfx, startMusic, toggleMusic } from "@/lib/game/music";
+import { musicMuted, playSfx, startMusic, startRankedMusic, stopMusic, toggleMusic } from "@/lib/game/music";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -111,6 +111,7 @@ export default function GameCanvas({
         if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
         if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
           gameOverSent.current = true;
+          stopMusic();
           playSfx("lose");
           onGameOver(next.score, next.distance, {
             score: next.score,
@@ -135,6 +136,7 @@ export default function GameCanvas({
         renderFrame(ctx, next, viewW, viewH, ranked);
         if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
           gameOverSent.current = true;
+          stopMusic();
           playSfx("lose");
           onGameOver(next.score, next.distance);
         }
@@ -157,11 +159,12 @@ export default function GameCanvas({
       onRunStart?.();
     }
     startedRef.current = true;
-    startMusic();
+    if (ranked) startRankedMusic();
+    else startMusic();
     playSfx("flap");
     flapsRef.current.push(stateRef.current.frame);
     stateRef.current = flap(stateRef.current);
-  }, [enabled, onRunStart]);
+  }, [enabled, onRunStart, ranked]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {

@@ -27,6 +27,29 @@ export function musicMuted() {
   return muted;
 }
 
+let rankedAudio: HTMLAudioElement | null = null;
+
+export function startRankedMusic() {
+  if (muted) return;
+  if (!rankedAudio) {
+    rankedAudio = new Audio("/ranked.mp3");
+    rankedAudio.loop = true;
+    rankedAudio.volume = 0.45;
+  }
+  if (rankedAudio.paused) void rankedAudio.play().catch(() => {});
+}
+
+export function stopMusic() {
+  if (timer) {
+    window.clearInterval(timer);
+    timer = 0;
+  }
+  if (rankedAudio) {
+    rankedAudio.pause();
+    rankedAudio.currentTime = 0;
+  }
+}
+
 export function startMusic() {
   if (muted) return;
   const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
@@ -38,9 +61,10 @@ export function startMusic() {
 
 export function toggleMusic() {
   muted = !muted;
-  if (muted && timer) {
-    window.clearInterval(timer);
-    timer = 0;
+  if (muted) {
+    stopMusic();
+  } else if (rankedAudio) {
+    startRankedMusic();
   } else {
     startMusic();
   }
