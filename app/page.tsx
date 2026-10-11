@@ -10,6 +10,8 @@ import GameOverModal from "@/components/GameOverModal";
 import { useNostr } from "@/hooks/useNostr";
 import { usePayment } from "@/hooks/usePayment";
 
+type RunLog = { flaps: number[]; frames: number; width: number; height: number };
+
 export default function HomePage() {
   const nostr = useNostr();
   const payment = usePayment();
@@ -28,6 +30,10 @@ export default function HomePage() {
   const [noteError, setNoteError] = useState<string | null>(null);
   const [rankedWarning, setRankedWarning] = useState<string | null>(null);
   const [leaderboardKey, setLeaderboardKey] = useState(0);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  // Token + log of the last ranked run, kept until the server confirms an eventId
+  const pendingSubmitRef = useRef<{ token: string; log: RunLog } | null>(null);
 
   useEffect(() => {
     if (nostr.isLoggedIn) setRankedWarning(null);
@@ -54,16 +60,52 @@ export default function HomePage() {
     await payment.payToPlay(nostr.user.pubkey, nostr.signEvent);
   }, [payment, nostr.isLoggedIn, nostr.user?.pubkey, nostr.signEvent]);
 
+  const submitRanked = useCallback(async () => {
+    const pending = pendingSubmitRef.current;
+    if (!pending) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const res = await fetch("/api/submit-score", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          token: pending.token,
+          flaps: pending.log.flaps,
+          frames: pending.log.frames,
+          width: pending.log.width,
+          height: pending.log.height,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (data.eventId) {
+        pendingSubmitRef.current = null;
+        payment.consumePayment(pending.token);
+        setScorePublished(true);
+        setTimeout(() => setLeaderboardKey((k) => k + 1), 2000);
+      } else {
+        console.error("Attested score rejected:", data.error);
+        setSubmitError(data.error || `Score submit failed (HTTP ${res.status})`);
+      }
+    } catch (e) {
+      console.error("Auto score publish failed:", e);
+      setSubmitError("Network error while submitting your score.");
+    } finally {
+      setSubmitting(false);
+    }
+  }, [payment]);
+
   const handleGameOver = useCallback(
-    (score: number, distance: number, log?: { flaps: number[]; frames: number; width: number; height: number }) => {
-      // Capture whether this run was ranked BEFORE consuming credit
+    (score: number, distance: number, log?: RunLog) => {
+      // Capture whether this run was ranked BEFORE ending the ranked run
       const ranked = payment.hasPaid;
       const token = payment.rankedToken;
       if (rankedModalRef.current && !ranked) return;
 
       if (ranked) {
         rankedModalRef.current = true;
-        payment.consumePayment();
+        // Token stays in the payment hook until submit-score returns an eventId
+        payment.endRankedRun();
       }
 
       setWasRanked(ranked);
@@ -73,6 +115,7 @@ export default function HomePage() {
       setScorePublished(false);
       setNotePublished(false);
       setNoteError(null);
+      setSubmitError(null);
 
       const isBest = score > personalBest;
       setIsPersonalBest(isBest);
@@ -87,30 +130,11 @@ export default function HomePage() {
 
       // Only server-attested ranked scores go to Global Rank
       if (ranked && token && score > 0 && log?.flaps?.length) {
-        fetch("/api/submit-score", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            token,
-            flaps: log.flaps,
-            frames: log.frames,
-            width: log.width,
-            height: log.height,
-          }),
-        })
-          .then((res) => res.json())
-          .then((data) => {
-            if (data.eventId) {
-              setScorePublished(true);
-              setTimeout(() => setLeaderboardKey((k) => k + 1), 2000);
-            } else {
-              console.error("Attested score rejected:", data.error);
-            }
-          })
-          .catch((e) => console.error("Auto score publish failed:", e));
+        pendingSubmitRef.current = { token, log };
+        submitRanked();
       }
     },
-    [personalBest, payment, nostr]
+    [personalBest, payment, submitRanked]
   );
 
   const handlePlayAgain = useCallback(() => {
@@ -282,6 +306,9 @@ export default function HomePage() {
           isPersonalBest={isPersonalBest}
           wasRanked={wasRanked}
           scorePublished={scorePublished}
+          submitError={submitError}
+          submitting={submitting}
+          onRetrySubmit={submitRanked}
           notePublished={notePublished}
           notePublishing={notePublishing}
           noteError={noteError}

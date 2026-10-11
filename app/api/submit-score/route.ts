@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findScoreByInvoice, publishAttestedScore } from "@/lib/nostr/sitePublish";
-import { tryMarkSubmitted } from "@/lib/security/invoiceStore";
+import { clearSubmitted, tryMarkSubmitted } from "@/lib/security/invoiceStore";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 import { MAX_RANKED_SCORE, verifyRankedToken } from "@/lib/security/rankedToken";
 import { MAX_FLAPS, MAX_REPLAY_FRAMES, replayRun } from "@/lib/game/engine";
@@ -44,8 +44,8 @@ export async function POST(req: NextRequest) {
   }
 
   const elapsed = Math.max(1, Math.floor(Date.now() / 1000) - payload.iat);
-  if (replay.score > elapsed * 45 + 80) {
-    return NextResponse.json({ error: "Score does not match run time" }, { status: 400 });
+  if (replay.frames > elapsed * 60 * 1.1 + 300) {
+    return NextResponse.json({ error: "Run is longer than the time since payment" }, { status: 400 });
   }
 
   if (replay.score > MAX_RANKED_SCORE) {
@@ -56,12 +56,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
   }
 
+  let already;
   try {
-    const already = await findScoreByInvoice(payload.invoiceId);
-    if (already) {
-      return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
-    }
+    already = await findScoreByInvoice(payload.invoiceId);
+  } catch (err) {
+    console.error("submit-score lookup failed:", err);
+    clearSubmitted(payload.invoiceId, payload.pubkey);
+    return NextResponse.json(
+      { error: "Could not reach the leaderboard. Your payment is still valid, retry the submit.", retryable: true },
+      { status: 502 }
+    );
+  }
+  if (already) {
+    return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
+  }
 
+  try {
     const event = await publishAttestedScore({
       playerPubkey: payload.pubkey,
       score: replay.score,
@@ -71,7 +81,11 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ ok: true, eventId: event.id, score: replay.score });
   } catch (err) {
-    console.error("submit-score failed:", err);
-    return NextResponse.json({ error: "Could not publish attested score" }, { status: 502 });
+    console.error("submit-score publish failed:", err);
+    clearSubmitted(payload.invoiceId, payload.pubkey);
+    return NextResponse.json(
+      { error: "Could not publish your score. Your payment is still valid, retry the submit.", retryable: true },
+      { status: 502 }
+    );
   }
 }

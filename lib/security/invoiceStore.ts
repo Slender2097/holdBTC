@@ -68,3 +68,12 @@ export function tryMarkSubmitted(invoiceId: string, pubkey: string): boolean {
   persistBestEffort();
   return true;
 }
+
+/** Undo tryMarkSubmitted so the same payment can be retried (e.g. relay publish failed). */
+export function clearSubmitted(invoiceId: string, pubkey: string): void {
+  hydrate();
+  const existing = memory.get(invoiceId);
+  if (!existing || existing.pubkey !== pubkey.toLowerCase()) return;
+  existing.submittedAt = null;
+  persistBestEffort();
+}
