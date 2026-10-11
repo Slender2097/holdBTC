@@ -193,7 +193,7 @@ export default function GameCanvas({
       className={`relative w-full h-full min-h-[320px] overflow-hidden ${className}`}
       style={{ isolation: "isolate" }}
     >
-      <YearStage year={year} live={ranked} />
+      <YearStage year={year} live={ranked} clip={ranked} />
       <button
         type="button"
         aria-label="Mute music"
