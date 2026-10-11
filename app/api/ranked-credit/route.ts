@@ -3,7 +3,7 @@ import type { Event } from "nostr-tools";
 import { strikeConfigured, strikeGetInvoice } from "@/lib/payments/strike";
 import { findScoreByInvoice } from "@/lib/nostr/sitePublish";
 import { verifyAuthEvent } from "@/lib/nostr/verifyAuth";
-import { getInvoiceRecord, tryMarkIssued } from "@/lib/security/invoiceStore";
+import { claimCredit, getCredit, type CreditRecord } from "@/lib/security/invoiceStore";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 import { isBanned } from "@/lib/security/blockList";
 import {
@@ -61,26 +61,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invoice amount too low" }, { status: 400 });
     }
 
-    if (getInvoiceRecord(invoiceId)) {
-      return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
-    }
+    const verifiedPubkey = String(body.authEvent?.pubkey || pubkey).toLowerCase();
 
+    // Same player retrying (refresh, dropped response): hand back the stored token, never a new seed.
+    const existing = await getCredit(invoiceId);
+    if (existing) return reuseOrReject(existing, verifiedPubkey);
+
+    // Invoices claimed before the durable store existed only show up on the relays.
     const already = await findScoreByInvoice(invoiceId);
     if (already) {
-      tryMarkIssued(invoiceId, pubkey);
       return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
     }
 
-    if (!tryMarkIssued(invoiceId, pubkey)) {
-      return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
-    }
-
-    const verifiedPubkey = String(body.authEvent?.pubkey || pubkey).toLowerCase();
     const token = issueRankedToken(verifiedPubkey, invoiceId);
     const issued = verifyRankedToken(token);
-    return NextResponse.json({ ok: true, token, seed: issued?.seed ?? null });
+    const claim = await claimCredit(invoiceId, {
+      pubkey: verifiedPubkey,
+      token,
+      seed: issued?.seed ?? null,
+    });
+    if (!claim.created) {
+      if (!claim.record) {
+        return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
+      }
+      return reuseOrReject(claim.record, verifiedPubkey);
+    }
+    return NextResponse.json({ ok: true, token, seed: claim.record.seed });
   } catch (err) {
     console.error("ranked-credit failed:", err);
     return NextResponse.json({ error: "Could not issue ranked credit" }, { status: 502 });
   }
+}
+
+function reuseOrReject(record: CreditRecord, pubkey: string) {
+  if (record.pubkey !== pubkey) {
+    return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
+  }
+  return NextResponse.json({ ok: true, token: record.token, seed: record.seed });
 }

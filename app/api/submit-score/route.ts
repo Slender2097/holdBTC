@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { findScoreByInvoice, publishAttestedScore } from "@/lib/nostr/sitePublish";
-import { clearSubmitted, tryMarkSubmitted } from "@/lib/security/invoiceStore";
+import { publishAttestedScore } from "@/lib/nostr/sitePublish";
+import { markSubmitPublished, reserveSubmit, type SubmitRecord } from "@/lib/security/invoiceStore";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 import { MAX_RANKED_SCORE, verifyRankedToken } from "@/lib/security/rankedToken";
 import { MAX_FLAPS, MAX_REPLAY_FRAMES, replayRun } from "@/lib/game/engine";
@@ -52,40 +52,57 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid score" }, { status: 400 });
   }
 
-  if (!tryMarkSubmitted(payload.invoiceId, payload.pubkey)) {
-    return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
-  }
-
-  let already;
+  let reserved;
   try {
-    already = await findScoreByInvoice(payload.invoiceId);
-  } catch (err) {
-    console.error("submit-score lookup failed:", err);
-    clearSubmitted(payload.invoiceId, payload.pubkey);
-    return NextResponse.json(
-      { error: "Could not reach the leaderboard. Your payment is still valid, retry the submit.", retryable: true },
-      { status: 502 }
-    );
-  }
-  if (already) {
-    return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
-  }
-
-  try {
-    const event = await publishAttestedScore({
-      playerPubkey: payload.pubkey,
+    reserved = await reserveSubmit(payload.invoiceId, {
+      pubkey: payload.pubkey,
       score: replay.score,
       distance: Math.floor(replay.distance),
-      invoiceId: payload.invoiceId,
     });
+  } catch (err) {
+    console.error("submit-score store failed:", err);
+    return NextResponse.json(
+      { error: "Could not record your score. Your payment is still valid, retry the submit.", retryable: true },
+      { status: 503 }
+    );
+  }
 
-    return NextResponse.json({ ok: true, eventId: event.id, score: replay.score });
+  const record = reserved.record;
+  if (!record || record.pubkey !== payload.pubkey) {
+    return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
+  }
+  // Already published: answer the retry with the stored result.
+  if (record.eventId) {
+    return NextResponse.json({ ok: true, eventId: record.eventId, score: record.score });
+  }
+  // Reserved but not yet published (first try, or an earlier publish failed):
+  // always publish the stored score, never a different run's.
+  return publish(payload.invoiceId, record);
+}
+
+async function publish(invoiceId: string, record: SubmitRecord) {
+  let eventId: string;
+  try {
+    const event = await publishAttestedScore({
+      playerPubkey: record.pubkey,
+      score: record.score,
+      distance: record.distance,
+      invoiceId,
+    });
+    eventId = event.id;
   } catch (err) {
     console.error("submit-score publish failed:", err);
-    clearSubmitted(payload.invoiceId, payload.pubkey);
     return NextResponse.json(
       { error: "Could not publish your score. Your payment is still valid, retry the submit.", retryable: true },
       { status: 502 }
     );
   }
+
+  try {
+    await markSubmitPublished(invoiceId, record, eventId);
+  } catch (err) {
+    // The score is on the relays; a retry re-publishes the same replaceable event.
+    console.error("submit-score eventId write-back failed:", err);
+  }
+  return NextResponse.json({ ok: true, eventId, score: record.score });
 }

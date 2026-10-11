@@ -1,79 +1,141 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
+import "server-only";
 
-export type InvoiceRecord = {
-  invoiceId: string;
+/**
+ * One-payment-one-run store, backed by Upstash Redis / Vercel KV (REST API, SET NX).
+ *
+ * Env (either pair):
+ *   UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
+ *   KV_REST_API_URL + KV_REST_API_TOKEN   (Vercel KV / Upstash integration)
+ *
+ * Without them, `next dev` falls back to an in-process Map. On Vercel or in a
+ * production build, a missing config throws so a deploy never silently runs
+ * without a durable store. A single-process self-hosted `next start` can opt
+ * into the in-process Map with INVOICE_STORE=memory.
+ */
+
+export type CreditRecord = {
   pubkey: string;
+  token: string;
+  seed: number | null;
   issuedAt: number;
-  submittedAt: number | null;
 };
 
-const memory = new Map<string, InvoiceRecord>();
+export type SubmitRecord = {
+  pubkey: string;
+  score: number;
+  distance: number;
+  eventId: string | null;
+  submittedAt: number;
+};
 
-function filePath(): string {
-  return process.env.INVOICE_STORE_PATH || join(process.cwd(), "data", "used-invoices.json");
-}
+const CREDIT_TTL_SEC = 30 * 24 * 60 * 60;
 
-function persistBestEffort() {
-  try {
-    const invoices: Record<string, InvoiceRecord> = {};
-    for (const [id, rec] of memory) invoices[id] = rec;
-    const path = filePath();
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, JSON.stringify({ invoices }, null, 2));
-  } catch (err) {
-    console.error("invoice store persist failed (memory still authoritative):", err);
+function restConfig(): { url: string; token: string } | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (url && token) return { url: url.replace(/\/+$/, ""), token };
+  if (process.env.INVOICE_STORE === "memory" && !process.env.VERCEL) return null;
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Invoice store is not configured: set UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or KV_REST_API_URL/KV_REST_API_TOKEN"
+    );
   }
+  return null;
 }
 
-function hydrate() {
-  if (memory.size > 0) return;
-  try {
-    const path = filePath();
-    if (!existsSync(path)) return;
-    const data = JSON.parse(readFileSync(path, "utf8")) as { invoices?: Record<string, InvoiceRecord> };
-    for (const [id, rec] of Object.entries(data.invoices || {})) memory.set(id, rec);
-  } catch (err) {
-    console.error("invoice store load failed:", err);
+// Dev-only fallback. Not shared between instances.
+const memory = new Map<string, string>();
+
+async function redis(command: (string | number)[]): Promise<unknown> {
+  const cfg = restConfig();
+  if (!cfg) {
+    const [op, key, value, ...opts] = command.map(String);
+    if (op === "GET") return memory.get(key) ?? null;
+    if (op === "SET") {
+      if (opts.includes("NX") && memory.has(key)) return null;
+      if (opts.includes("XX") && !memory.has(key)) return null;
+      memory.set(key, value);
+      return "OK";
+    }
+    throw new Error(`Unsupported dev store command: ${op}`);
   }
-}
-
-export function getInvoiceRecord(invoiceId: string): InvoiceRecord | null {
-  hydrate();
-  return memory.get(invoiceId) || null;
-}
-
-/** Atomic on this process. Returns true only for the first issuer. */
-export function tryMarkIssued(invoiceId: string, pubkey: string): boolean {
-  hydrate();
-  if (memory.has(invoiceId)) return false;
-  memory.set(invoiceId, {
-    invoiceId,
-    pubkey: pubkey.toLowerCase(),
-    issuedAt: Date.now(),
-    submittedAt: null,
+  const res = await fetch(cfg.url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${cfg.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(command.map(String)),
+    cache: "no-store",
   });
-  persistBestEffort();
-  return true;
+  const data = (await res.json().catch(() => ({}))) as { result?: unknown; error?: string };
+  if (!res.ok || data.error) {
+    throw new Error(`Invoice store error (${res.status}): ${data.error || "unknown"}`);
+  }
+  return data.result ?? null;
 }
 
-/** Atomic on this process. Returns true only for the first submit of that invoice+pubkey. */
-export function tryMarkSubmitted(invoiceId: string, pubkey: string): boolean {
-  hydrate();
-  const existing = memory.get(invoiceId);
-  if (!existing) return false;
-  if (existing.pubkey !== pubkey.toLowerCase()) return false;
-  if (existing.submittedAt) return false;
-  existing.submittedAt = Date.now();
-  persistBestEffort();
-  return true;
+async function getJson<T>(key: string): Promise<T | null> {
+  const raw = await redis(["GET", key]);
+  if (typeof raw !== "string") return null;
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return null;
+  }
 }
 
-/** Undo tryMarkSubmitted so the same payment can be retried (e.g. relay publish failed). */
-export function clearSubmitted(invoiceId: string, pubkey: string): void {
-  hydrate();
-  const existing = memory.get(invoiceId);
-  if (!existing || existing.pubkey !== pubkey.toLowerCase()) return;
-  existing.submittedAt = null;
-  persistBestEffort();
+/** SET key value NX [EX ttl]. Returns true only for the first writer. */
+async function setNx(key: string, value: unknown, ttlSec?: number): Promise<boolean> {
+  const cmd: (string | number)[] = ["SET", key, JSON.stringify(value), "NX"];
+  if (ttlSec) cmd.push("EX", ttlSec);
+  return (await redis(cmd)) === "OK";
+}
+
+const creditKey = (invoiceId: string) => `credit:${invoiceId}`;
+const submitKey = (invoiceId: string) => `submit:${invoiceId}`;
+
+export function getCredit(invoiceId: string): Promise<CreditRecord | null> {
+  return getJson<CreditRecord>(creditKey(invoiceId));
+}
+
+/**
+ * Stores the ranked credit for an invoice once. If another credit already exists,
+ * returns it instead (the caller decides whether the pubkey may reuse it).
+ */
+export async function claimCredit(
+  invoiceId: string,
+  record: Omit<CreditRecord, "issuedAt">
+): Promise<{ created: true; record: CreditRecord } | { created: false; record: CreditRecord | null }> {
+  const full: CreditRecord = { ...record, pubkey: record.pubkey.toLowerCase(), issuedAt: Date.now() };
+  if (await setNx(creditKey(invoiceId), full, CREDIT_TTL_SEC)) {
+    return { created: true, record: full };
+  }
+  return { created: false, record: await getCredit(invoiceId) };
+}
+
+/**
+ * Reserves the one submit for an invoice. If one already exists, returns it so the
+ * caller can answer idempotently or re-publish the stored score.
+ */
+export async function reserveSubmit(
+  invoiceId: string,
+  record: Omit<SubmitRecord, "eventId" | "submittedAt">
+): Promise<{ created: true; record: SubmitRecord } | { created: false; record: SubmitRecord | null }> {
+  const full: SubmitRecord = {
+    ...record,
+    pubkey: record.pubkey.toLowerCase(),
+    eventId: null,
+    submittedAt: Date.now(),
+  };
+  if (await setNx(submitKey(invoiceId), full, CREDIT_TTL_SEC)) {
+    return { created: true, record: full };
+  }
+  return { created: false, record: await getJson<SubmitRecord>(submitKey(invoiceId)) };
+}
+
+/** Writes the published eventId back onto an existing submit record. */
+export async function markSubmitPublished(
+  invoiceId: string,
+  record: SubmitRecord,
+  eventId: string
+): Promise<void> {
+  await redis(["SET", submitKey(invoiceId), JSON.stringify({ ...record, eventId }), "XX", "EX", CREDIT_TTL_SEC]);
 }
