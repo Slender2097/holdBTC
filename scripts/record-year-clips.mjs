@@ -15,16 +15,19 @@ const OUT = path.join(ROOT, "public/years/clips");
 const LOOP_S = 30;
 const FPS = 30;
 const SIZES = { p: { width: 540, height: 960 }, l: { width: 960, height: 540 } };
+const SCALE = Number(process.env.SCALE || 2); // 2 = 1080x1920 / 1920x1080
+const CRF = process.env.CRF || "26";
+const OUTDIR = process.env.OUTDIR || OUT;
 
 const years = process.argv.slice(2).map(Number);
 if (!years.length) for (let y = 2008; y <= 2026; y++) years.push(y);
-mkdirSync(OUT, { recursive: true });
+mkdirSync(OUTDIR, { recursive: true });
 
 const browser = await chromium.launch();
 for (const year of years) {
   const html = readFileSync(path.join(ROOT, `public/years/${year}.html`), "utf8");
   for (const [tag, viewport] of Object.entries(SIZES)) {
-    const page = await browser.newPage({ viewport, reducedMotion: "no-preference" });
+    const page = await browser.newPage({ viewport, deviceScaleFactor: SCALE, reducedMotion: "no-preference" });
     await page.setContent(html, { waitUntil: "load" });
     await page.waitForTimeout(500);
     // Pause every animation, then stretch each one to a whole number of
@@ -42,16 +45,16 @@ for (const year of years) {
       };
     }, LOOP_S * 1000);
 
-    const file = path.join(OUT, `${year}-${tag}.mp4`);
+    const file = path.join(OUTDIR, `${year}-${tag}.mp4`);
     const ff = spawn("ffmpeg", [
       "-y", "-loglevel", "error", "-f", "image2pipe", "-framerate", String(FPS), "-i", "-",
-      "-c:v", "libx264", "-preset", "slow", "-crf", "28", "-pix_fmt", "yuv420p",
+      "-c:v", "libx264", "-preset", "slow", "-tune", "animation", "-crf", CRF, "-pix_fmt", "yuv420p",
       "-movflags", "+faststart", "-an", file,
     ], { stdio: ["pipe", "inherit", "inherit"] });
     const done = new Promise((res, rej) => ff.on("close", (c) => (c ? rej(new Error(`ffmpeg ${c}`)) : res())));
     for (let f = 0; f < LOOP_S * FPS; f++) {
       await page.evaluate((ms) => window.__seek(ms), (f * 1000) / FPS);
-      const shot = await page.screenshot({ type: "jpeg", quality: 92 });
+      const shot = await page.screenshot({ type: "jpeg", quality: 95 });
       if (!ff.stdin.write(shot)) await new Promise((r) => ff.stdin.once("drain", r));
     }
     ff.stdin.end();
