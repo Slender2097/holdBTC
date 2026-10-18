@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { publishAttestedScore } from "@/lib/nostr/sitePublish";
+import { findScoreByInvoice, publishAttestedScore } from "@/lib/nostr/sitePublish";
 import { markSubmitPublished, reserveSubmit, type SubmitRecord } from "@/lib/security/invoiceStore";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 import { MAX_RANKED_SCORE, verifyRankedToken } from "@/lib/security/rankedToken";
@@ -83,15 +83,27 @@ export async function POST(req: NextRequest) {
 async function publish(invoiceId: string, record: SubmitRecord) {
   let eventId: string;
   try {
-    const event = await publishAttestedScore({
-      playerPubkey: record.pubkey,
-      score: record.score,
-      distance: record.distance,
-      invoiceId,
-    });
-    eventId = event.id;
+    // Covers invoices spent before this store existed, and a publish whose write-back failed.
+    const onRelays = await findScoreByInvoice(invoiceId);
+    if (onRelays) {
+      const sameRun =
+        onRelays.tags.some((t) => t[0] === "p" && t[1] === record.pubkey) &&
+        onRelays.tags.some((t) => t[0] === "score" && t[1] === String(record.score));
+      if (!sameRun) {
+        return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
+      }
+      eventId = onRelays.id;
+    } else {
+      const event = await publishAttestedScore({
+        playerPubkey: record.pubkey,
+        score: record.score,
+        distance: record.distance,
+        invoiceId,
+      });
+      eventId = event.id;
+    }
   } catch (err) {
-    console.error("submit-score publish failed:", err);
+    console.error("submit-score relay lookup/publish failed:", err);
     return NextResponse.json(
       { error: "Could not publish your score. Your payment is still valid, retry the submit.", retryable: true },
       { status: 502 }
@@ -99,9 +111,11 @@ async function publish(invoiceId: string, record: SubmitRecord) {
   }
 
   try {
-    await markSubmitPublished(invoiceId, record, eventId);
+    if (!(await markSubmitPublished(invoiceId, record.pubkey, eventId))) {
+      console.warn("submit-score eventId write-back skipped by guard:", invoiceId);
+    }
   } catch (err) {
-    // The score is on the relays; a retry re-publishes the same replaceable event.
+    // The score is already on the relays; a retry finds it there and writes back again.
     console.error("submit-score eventId write-back failed:", err);
   }
   return NextResponse.json({ ok: true, eventId, score: record.score });

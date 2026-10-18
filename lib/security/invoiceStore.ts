@@ -9,8 +9,7 @@ import "server-only";
  *
  * Without them, `next dev` falls back to an in-process Map. On Vercel or in a
  * production build, a missing config throws so a deploy never silently runs
- * without a durable store. A single-process self-hosted `next start` can opt
- * into the in-process Map with INVOICE_STORE=memory.
+ * without a durable store.
  */
 
 export type CreditRecord = {
@@ -34,7 +33,6 @@ function restConfig(): { url: string; token: string } | null {
   const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
   if (url && token) return { url: url.replace(/\/+$/, ""), token };
-  if (process.env.INVOICE_STORE === "memory" && !process.env.VERCEL) return null;
   if (process.env.VERCEL || process.env.NODE_ENV === "production") {
     throw new Error(
       "Invoice store is not configured: set UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or KV_REST_API_URL/KV_REST_API_TOKEN"
@@ -125,17 +123,37 @@ export async function reserveSubmit(
     eventId: null,
     submittedAt: Date.now(),
   };
-  if (await setNx(submitKey(invoiceId), full, CREDIT_TTL_SEC)) {
+  if (await setNx(submitKey(invoiceId), full)) {
     return { created: true, record: full };
   }
   return { created: false, record: await getJson<SubmitRecord>(submitKey(invoiceId)) };
 }
 
-/** Writes the published eventId back onto an existing submit record. */
+// Writes eventId only if the record still belongs to this pubkey and has no eventId yet.
+const MARK_PUBLISHED_LUA = `
+local raw = redis.call('GET', KEYS[1])
+if not raw then return 0 end
+local rec = cjson.decode(raw)
+if rec.pubkey ~= ARGV[1] then return 0 end
+if rec.eventId ~= nil and rec.eventId ~= cjson.null then return 0 end
+rec.eventId = ARGV[2]
+redis.call('SET', KEYS[1], cjson.encode(rec), 'KEEPTTL')
+return 1
+`;
+
+/** Writes the published eventId back onto the submit record. Returns false if the guard refused. */
 export async function markSubmitPublished(
   invoiceId: string,
-  record: SubmitRecord,
+  pubkey: string,
   eventId: string
-): Promise<void> {
-  await redis(["SET", submitKey(invoiceId), JSON.stringify({ ...record, eventId }), "XX", "EX", CREDIT_TTL_SEC]);
+): Promise<boolean> {
+  const key = submitKey(invoiceId);
+  const pk = pubkey.toLowerCase();
+  if (!restConfig()) {
+    const rec = await getJson<SubmitRecord>(key);
+    if (!rec || rec.pubkey !== pk || rec.eventId) return false;
+    memory.set(key, JSON.stringify({ ...rec, eventId }));
+    return true;
+  }
+  return (await redis(["EVAL", MARK_PUBLISHED_LUA, 1, key, pk, eventId])) === 1;
 }
