@@ -6,6 +6,9 @@ interface GameOverModalProps {
   isPersonalBest: boolean;
   wasRanked: boolean;
   scorePublished: boolean;
+  submitError?: string | null;
+  submitting?: boolean;
+  onRetrySubmit?: () => void;
   notePublished: boolean;
   notePublishing: boolean;
   noteError?: string | null;
@@ -20,6 +23,9 @@ export default function GameOverModal({
   isPersonalBest,
   wasRanked,
   scorePublished,
+  submitError,
+  submitting,
+  onRetrySubmit,
   notePublished,
   notePublishing,
   noteError,
@@ -45,11 +51,16 @@ export default function GameOverModal({
               NEW PERSONAL BEST
             </p>
           )}
-          {wasRanked && canShare && (
+          {wasRanked && canShare && !submitError && (
             <p className="mt-2 text-[10px] font-mono text-alien-muted">
               {scorePublished
                 ? "SCORE SENT TO LEADERBOARD"
                 : "SENDING SCORE TO LEADERBOARD..."}
+            </p>
+          )}
+          {wasRanked && submitError && !scorePublished && (
+            <p className="mt-2 text-[11px] text-red-400 font-mono leading-relaxed">
+              {submitError}
             </p>
           )}
           {!wasRanked && (
@@ -60,6 +71,16 @@ export default function GameOverModal({
         </div>
 
         <div className="space-y-3">
+          {wasRanked && submitError && !scorePublished && onRetrySubmit && (
+            <button
+              onClick={onRetrySubmit}
+              disabled={submitting}
+              className="w-full py-3 rounded-lg text-sm font-mono tracking-wide bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-white disabled:opacity-50 transition"
+            >
+              {submitting ? "RETRYING..." : "RETRY RANKED SUBMIT"}
+            </button>
+          )}
+
           {wasRanked && canShare && (
             <button
               onClick={onShareNote}

@@ -3,7 +3,6 @@ import type { Event } from "nostr-tools";
 import { strikeConfigured, strikeGetInvoice } from "@/lib/payments/strike";
 import { findScoreByInvoice } from "@/lib/nostr/sitePublish";
 import { verifyAuthEvent } from "@/lib/nostr/verifyAuth";
-import { getInvoiceRecord, tryMarkIssued } from "@/lib/security/invoiceStore";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 import { isBanned } from "@/lib/security/blockList";
 import {
@@ -61,17 +60,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invoice amount too low" }, { status: 400 });
     }
 
-    if (getInvoiceRecord(invoiceId)) {
-      return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
-    }
-
+    // Already played and published: refuse. Otherwise any number of claims for this
+    // invoice get the same seed (seedForInvoice), so no store is needed to stop a second run.
     const already = await findScoreByInvoice(invoiceId);
     if (already) {
-      tryMarkIssued(invoiceId, pubkey);
-      return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
-    }
-
-    if (!tryMarkIssued(invoiceId, pubkey)) {
       return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
     }
 

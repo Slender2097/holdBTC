@@ -1,70 +1,115 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "fs";
-import { dirname, join } from "path";
+import "server-only";
 
-export type InvoiceRecord = {
-  invoiceId: string;
+/**
+ * One-payment-one-run store, backed by Upstash Redis / Vercel KV (REST API).
+ * Uses only GET and SET NX, so it needs no Lua/EVAL support.
+ *
+ * Env (either pair):
+ *   UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN
+ *   KV_REST_API_URL + KV_REST_API_TOKEN   (Vercel KV / Upstash integration)
+ *
+ * Without them, `next dev` falls back to an in-process Map. On Vercel or in a
+ * production build, a missing config throws so a deploy never silently runs
+ * without a durable store.
+ *
+ * Keys (no TTL, never rewritten):
+ *   submit:<invoiceId>        the one verified run for that invoice
+ *   submit:<invoiceId>:event  the eventId it was published as
+ */
+
+export type SubmitRecord = {
   pubkey: string;
-  issuedAt: number;
-  submittedAt: number | null;
+  score: number;
+  distance: number;
+  submittedAt: number;
 };
 
-const memory = new Map<string, InvoiceRecord>();
-
-function filePath(): string {
-  return process.env.INVOICE_STORE_PATH || join(process.cwd(), "data", "used-invoices.json");
-}
-
-function persistBestEffort() {
-  try {
-    const invoices: Record<string, InvoiceRecord> = {};
-    for (const [id, rec] of memory) invoices[id] = rec;
-    const path = filePath();
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, JSON.stringify({ invoices }, null, 2));
-  } catch (err) {
-    console.error("invoice store persist failed (memory still authoritative):", err);
+function restConfig(): { url: string; token: string } | null {
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL;
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN;
+  if (url && token) return { url: url.replace(/\/+$/, ""), token };
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    throw new Error(
+      "Invoice store is not configured: set UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or KV_REST_API_URL/KV_REST_API_TOKEN"
+    );
   }
+  return null;
 }
 
-function hydrate() {
-  if (memory.size > 0) return;
-  try {
-    const path = filePath();
-    if (!existsSync(path)) return;
-    const data = JSON.parse(readFileSync(path, "utf8")) as { invoices?: Record<string, InvoiceRecord> };
-    for (const [id, rec] of Object.entries(data.invoices || {})) memory.set(id, rec);
-  } catch (err) {
-    console.error("invoice store load failed:", err);
+// Dev-only fallback. Not shared between instances.
+const memory = new Map<string, string>();
+
+async function redis(command: string[]): Promise<unknown> {
+  const cfg = restConfig();
+  if (!cfg) {
+    const [op, key, value, ...opts] = command;
+    if (op === "GET") return memory.get(key) ?? null;
+    if (op === "SET" && opts.length === 1 && opts[0] === "NX") {
+      if (memory.has(key)) return null;
+      memory.set(key, value);
+      return "OK";
+    }
+    throw new Error(`Unsupported dev store command: ${command.join(" ")}`);
   }
-}
-
-export function getInvoiceRecord(invoiceId: string): InvoiceRecord | null {
-  hydrate();
-  return memory.get(invoiceId) || null;
-}
-
-/** Atomic on this process. Returns true only for the first issuer. */
-export function tryMarkIssued(invoiceId: string, pubkey: string): boolean {
-  hydrate();
-  if (memory.has(invoiceId)) return false;
-  memory.set(invoiceId, {
-    invoiceId,
-    pubkey: pubkey.toLowerCase(),
-    issuedAt: Date.now(),
-    submittedAt: null,
+  const res = await fetch(cfg.url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${cfg.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(command),
+    cache: "no-store",
+    signal: AbortSignal.timeout(5000),
   });
-  persistBestEffort();
-  return true;
+  const data = (await res.json().catch(() => ({}))) as { result?: unknown; error?: string };
+  if (!res.ok || data.error) {
+    throw new Error(`Invoice store error (${res.status}): ${data.error || "unknown"}`);
+  }
+  return data.result ?? null;
 }
 
-/** Atomic on this process. Returns true only for the first submit of that invoice+pubkey. */
-export function tryMarkSubmitted(invoiceId: string, pubkey: string): boolean {
-  hydrate();
-  const existing = memory.get(invoiceId);
-  if (!existing) return false;
-  if (existing.pubkey !== pubkey.toLowerCase()) return false;
-  if (existing.submittedAt) return false;
-  existing.submittedAt = Date.now();
-  persistBestEffort();
-  return true;
+/** SET key value NX. Returns true only for the first writer. */
+async function setNx(key: string, value: string): Promise<boolean> {
+  return (await redis(["SET", key, value, "NX"])) === "OK";
+}
+
+async function getString(key: string): Promise<string | null> {
+  const raw = await redis(["GET", key]);
+  return typeof raw === "string" ? raw : null;
+}
+
+async function getRecord(invoiceId: string): Promise<SubmitRecord | null> {
+  const raw = await getString(submitKey(invoiceId));
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as SubmitRecord;
+  } catch {
+    return null;
+  }
+}
+
+const submitKey = (invoiceId: string) => `submit:${invoiceId}`;
+const eventKey = (invoiceId: string) => `submit:${invoiceId}:event`;
+
+/**
+ * Reserves the one submit for an invoice. If one already exists, returns it (and its
+ * eventId, if published) so the caller can answer idempotently or re-publish the stored score.
+ */
+export async function reserveSubmit(
+  invoiceId: string,
+  record: Omit<SubmitRecord, "submittedAt">
+): Promise<{ record: SubmitRecord | null; eventId: string | null }> {
+  const full: SubmitRecord = { ...record, pubkey: record.pubkey.toLowerCase(), submittedAt: Date.now() };
+  if (await setNx(submitKey(invoiceId), JSON.stringify(full))) {
+    return { record: full, eventId: null };
+  }
+  return { record: await getRecord(invoiceId), eventId: await getString(eventKey(invoiceId)) };
+}
+
+/**
+ * Writes the published eventId once. Refuses if the submit record belongs to another
+ * pubkey or an eventId is already stored. The record is write-once, so the pubkey check
+ * cannot go stale before the SET NX.
+ */
+export async function markSubmitPublished(invoiceId: string, pubkey: string, eventId: string): Promise<boolean> {
+  const record = await getRecord(invoiceId);
+  if (!record || record.pubkey !== pubkey.toLowerCase()) return false;
+  return setNx(eventKey(invoiceId), eventId);
 }

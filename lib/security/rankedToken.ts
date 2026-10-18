@@ -42,14 +42,23 @@ export interface RankedPayload {
   seed: number;
 }
 
-export function issueRankedToken(pubkey: string, invoiceId: string, ttlSec = 2 * 60 * 60): string {
+// Long enough that a paid run survives refreshes and store outages; one score per
+// invoice is enforced by the submit record, not by expiry.
+export const RANKED_TOKEN_TTL_SEC = 30 * 24 * 60 * 60;
+
+/** Same invoice, same seed: re-claiming an invoice can never yield a second run. */
+export function seedForInvoice(invoiceId: string): number {
+  return createHmac("sha256", SECRET()).update(`seed:${invoiceId}`).digest().readUInt32BE(0);
+}
+
+export function issueRankedToken(pubkey: string, invoiceId: string, ttlSec = RANKED_TOKEN_TTL_SEC): string {
   const payload: RankedPayload = {
     pubkey: pubkey.toLowerCase(),
     invoiceId,
     iat: Math.floor(Date.now() / 1000),
     exp: Math.floor(Date.now() / 1000) + ttlSec,
     nonce: randomBytes(8).toString("hex"),
-    seed: randomBytes(4).readUInt32BE(0),
+    seed: seedForInvoice(invoiceId),
   };
   const body = b64url(JSON.stringify(payload));
   return `${body}.${hmac(`token:${body}`)}`;

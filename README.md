@@ -26,9 +26,13 @@ STRIKE_API_KEY=
 STRIKE_API_URL=https://api.strike.me
 RANKED_TOKEN_SECRET=
 HOLD_BTC_NSEC=
+UPSTASH_REDIS_REST_URL=
+UPSTASH_REDIS_REST_TOKEN=
 ```
 
 `HOLD_BTC_NSEC` is a dedicated key used only to sign paid scores. It is not a player account.
+
+`UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` point at the Redis that enforces one payment, one ranked run. With the Vercel KV / Upstash integration, `KV_REST_API_URL` / `KV_REST_API_TOKEN` work instead. They are required on Vercel and in production (`next start`), where the server throws if neither pair is set; `next dev` falls back to an in-process Map.
 
 ## Ranked runs
 

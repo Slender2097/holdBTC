@@ -8,8 +8,8 @@ export const RANKED_DT = 1;
 export const RANKED_WORLD_W = 960;
 export const RANKED_WORLD_H = 720;
 export const RANKED_TICK_MS = 1000 / 60;
-export const MAX_REPLAY_FRAMES = 24_000;
-export const MAX_FLAPS = 4_000;
+export const MAX_REPLAY_FRAMES = 216_000;
+export const MAX_FLAPS = 40_000;
 
 export function getYearFromScore(score: number): number {
   return GAME.START_YEAR + Math.floor(score / GAME.PIPS_PER_YEAR);

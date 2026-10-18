@@ -24,6 +24,7 @@ export function usePayment() {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const pubkeyRef = useRef<string | null>(null);
   const signerRef = useRef<AuthSigner | undefined>(undefined);
+  const rankedTokenRef = useRef<string | null>(null);
 
   useEffect(() => {
     try {
@@ -58,12 +59,20 @@ export function usePayment() {
     setPaying(false);
   }, [stopPoll]);
 
-  const consumePayment = useCallback(() => {
+  /** The ranked run is over: further games are free play, but the token is kept for submit/retry. */
+  const endRankedRun = useCallback(() => {
     setHasPaid(false);
-    setRankedToken(null);
-    setRankedSeed(null);
     setInvoice(null);
     setGamesPlayed((n) => n + 1);
+  }, []);
+
+  /** Call only after submit-score returned an eventId for this token. */
+  const consumePayment = useCallback((token: string) => {
+    // A newer paid run may have replaced the token while this one was retrying.
+    if (rankedTokenRef.current !== token) return;
+    rankedTokenRef.current = null;
+    setRankedToken(null);
+    setRankedSeed(null);
   }, []);
 
   const claim = useCallback(async (inv: InvoiceData, pubkey: string) => {
@@ -94,6 +103,7 @@ export function usePayment() {
       setError(result.error);
       return false;
     }
+    rankedTokenRef.current = result.token;
     setRankedToken(result.token);
     setRankedSeed(typeof result.seed === "number" ? result.seed : null);
     setHasPaid(true);
@@ -171,6 +181,7 @@ export function usePayment() {
       pubkeyRef.current = pk;
     },
     payToPlay,
+    endRankedRun,
     consumePayment,
     cancelPayment,
   };
