@@ -8,7 +8,7 @@ import { MAX_FLAPS, MAX_REPLAY_FRAMES, replayRun } from "@/lib/game/engine";
 export async function POST(req: NextRequest) {
   const limit = rateLimit(`submit:${clientIp(req)}`, 10, 60_000);
   if (!limit.ok) {
-    return NextResponse.json({ error: "Too many requests" }, { status: 429 });
+    return NextResponse.json({ error: "Too many requests", retryable: true }, { status: 429 });
   }
 
   let body: { token?: string; flaps?: number[]; frames?: number; width?: number; height?: number };
@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "This payment was already used" }, { status: 409 });
   }
   // Already published: answer the retry with the stored result.
-  if (record.eventId) {
-    return NextResponse.json({ ok: true, eventId: record.eventId, score: record.score });
+  if (reserved.eventId) {
+    return NextResponse.json({ ok: true, eventId: reserved.eventId, score: record.score });
   }
   // Reserved but not yet published (first try, or an earlier publish failed):
   // always publish the stored score, never a different run's.

@@ -11,6 +11,63 @@ import { useNostr } from "@/hooks/useNostr";
 import { usePayment } from "@/hooks/usePayment";
 
 type RunLog = { flaps: number[]; frames: number; width: number; height: number };
+type PendingRun = { token: string; log: RunLog; score: number; distance: number };
+type SubmitResult = { eventId: string } | { error: string; retryable: boolean };
+
+// Finished ranked runs not yet on the board. Survives refreshes; cleared on an eventId
+// or a final rejection. Holds nothing the server trusts: it re-verifies token and replay.
+const PENDING_KEY = "holdbtc_pending_ranked";
+const AUTO_RETRY_MS = [2000, 6000];
+
+function loadPending(): PendingRun[] {
+  try {
+    const list = JSON.parse(localStorage.getItem(PENDING_KEY) || "[]");
+    return Array.isArray(list) ? list.filter((r) => r && typeof r.token === "string" && r.log) : [];
+  } catch {
+    return [];
+  }
+}
+
+function savePending(list: PendingRun[]) {
+  try {
+    if (list.length) localStorage.setItem(PENDING_KEY, JSON.stringify(list));
+    else localStorage.removeItem(PENDING_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function addPending(run: PendingRun) {
+  savePending([...loadPending().filter((r) => r.token !== run.token), run]);
+}
+
+function removePending(token: string) {
+  savePending(loadPending().filter((r) => r.token !== token));
+}
+
+async function postRun(run: PendingRun): Promise<SubmitResult> {
+  try {
+    const res = await fetch("/api/submit-score", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        token: run.token,
+        flaps: run.log.flaps,
+        frames: run.log.frames,
+        width: run.log.width,
+        height: run.log.height,
+      }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (data.eventId) return { eventId: data.eventId };
+    return {
+      error: data.error || `Score submit failed (HTTP ${res.status})`,
+      retryable: data.retryable === true || res.status >= 500 || res.status === 429,
+    };
+  } catch {
+    return { error: "Network error while submitting your score.", retryable: true };
+  }
+}
 
 export default function HomePage() {
   const nostr = useNostr();
@@ -32,8 +89,10 @@ export default function HomePage() {
   const [leaderboardKey, setLeaderboardKey] = useState(0);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  // Token + log of the last ranked run, kept until the server confirms an eventId
-  const pendingSubmitRef = useRef<{ token: string; log: RunLog } | null>(null);
+  const [submitRetryable, setSubmitRetryable] = useState(false);
+  // The ranked run shown in the Game Over modal, kept until the server confirms an eventId
+  const pendingSubmitRef = useRef<PendingRun | null>(null);
+  const resumedRef = useRef(false);
 
   useEffect(() => {
     if (nostr.isLoggedIn) setRankedWarning(null);
@@ -61,39 +120,55 @@ export default function HomePage() {
   }, [payment, nostr.isLoggedIn, nostr.user?.pubkey, nostr.signEvent]);
 
   const submitRanked = useCallback(async () => {
-    const pending = pendingSubmitRef.current;
-    if (!pending) return;
+    const run = pendingSubmitRef.current;
+    if (!run) return;
     setSubmitting(true);
     setSubmitError(null);
-    try {
-      const res = await fetch("/api/submit-score", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          token: pending.token,
-          flaps: pending.log.flaps,
-          frames: pending.log.frames,
-          width: pending.log.width,
-          height: pending.log.height,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (data.eventId) {
-        pendingSubmitRef.current = null;
-        payment.consumePayment(pending.token);
-        setScorePublished(true);
-        setTimeout(() => setLeaderboardKey((k) => k + 1), 2000);
-      } else {
-        console.error("Attested score rejected:", data.error);
-        setSubmitError(data.error || `Score submit failed (HTTP ${res.status})`);
-      }
-    } catch (e) {
-      console.error("Auto score publish failed:", e);
-      setSubmitError("Network error while submitting your score.");
-    } finally {
-      setSubmitting(false);
+    let result = await postRun(run);
+    // Ride out short blips before asking the player to retry
+    for (const ms of AUTO_RETRY_MS) {
+      if ("eventId" in result || !result.retryable) break;
+      await new Promise((r) => setTimeout(r, ms));
+      result = await postRun(run);
+    }
+    if ("eventId" in result || !result.retryable) removePending(run.token);
+    if ("eventId" in result) payment.consumePayment(run.token);
+
+    // The player may have moved on to another run; only update the modal for this one
+    if (pendingSubmitRef.current !== run) return;
+    setSubmitting(false);
+    if ("eventId" in result) {
+      pendingSubmitRef.current = null;
+      setScorePublished(true);
+      setTimeout(() => setLeaderboardKey((k) => k + 1), 2000);
+    } else {
+      console.error("Attested score rejected:", result.error);
+      setSubmitError(result.error);
+      setSubmitRetryable(result.retryable);
     }
   }, [payment]);
+
+  // After a refresh, reopen the Game Over modal for a ranked run that never reached the board
+  useEffect(() => {
+    if (resumedRef.current) return;
+    resumedRef.current = true;
+    const pending = loadPending();
+    const latest = pending[pending.length - 1];
+    if (!latest) return;
+    // Older leftovers (rare) are re-posted quietly
+    for (const run of pending.slice(0, -1)) {
+      postRun(run).then((r) => {
+        if ("eventId" in r || !r.retryable) removePending(run.token);
+      });
+    }
+    rankedModalRef.current = true;
+    setWasRanked(true);
+    setLastScore(latest.score);
+    setLastDistance(latest.distance);
+    setShowGameOver(true);
+    pendingSubmitRef.current = latest;
+    submitRanked();
+  }, [submitRanked]);
 
   const handleGameOver = useCallback(
     (score: number, distance: number, log?: RunLog) => {
@@ -116,6 +191,7 @@ export default function HomePage() {
       setNotePublished(false);
       setNoteError(null);
       setSubmitError(null);
+      setSubmitRetryable(false);
 
       const isBest = score > personalBest;
       setIsPersonalBest(isBest);
@@ -130,7 +206,9 @@ export default function HomePage() {
 
       // Only server-attested ranked scores go to Global Rank
       if (ranked && token && score > 0 && log?.flaps?.length) {
-        pendingSubmitRef.current = { token, log };
+        const run = { token, log, score, distance };
+        addPending(run);
+        pendingSubmitRef.current = run;
         submitRanked();
       }
     },
@@ -308,7 +386,7 @@ export default function HomePage() {
           scorePublished={scorePublished}
           submitError={submitError}
           submitting={submitting}
-          onRetrySubmit={submitRanked}
+          onRetrySubmit={submitRetryable ? submitRanked : undefined}
           notePublished={notePublished}
           notePublishing={notePublishing}
           noteError={noteError}
