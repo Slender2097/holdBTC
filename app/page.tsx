@@ -98,6 +98,13 @@ export default function HomePage() {
     if (nostr.isLoggedIn) setRankedWarning(null);
   }, [nostr.isLoggedIn]);
 
+  // A saved ranked invoice claims with the account that paid, once it is logged in
+  const { setSigner } = payment;
+  const userPubkey = nostr.user?.pubkey ?? null;
+  useEffect(() => {
+    setSigner(userPubkey, userPubkey ? nostr.signEvent : undefined);
+  }, [setSigner, userPubkey, nostr.signEvent]);
+
   useEffect(() => {
     try {
       const stored = localStorage.getItem("holdbtc_best");
@@ -115,7 +122,6 @@ export default function HomePage() {
       return;
     }
     setRankedWarning(null);
-    payment.setPubkey(nostr.user.pubkey);
     await payment.payToPlay(nostr.user.pubkey, nostr.signEvent);
   }, [payment, nostr.isLoggedIn, nostr.user?.pubkey, nostr.signEvent]);
 
@@ -293,9 +299,18 @@ export default function HomePage() {
           )}
 
           {payment.error && (
-            <p className="text-sm text-red-400 bg-red-950/40 border border-red-500/20 rounded-lg px-3 py-2 font-mono">
-              {payment.error}
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-red-400 bg-red-950/40 border border-red-500/20 rounded-lg px-3 py-2 font-mono">
+              <span>{payment.error}</span>
+              {payment.invoiceHidden && payment.claimRetryable && (
+                <button
+                  onClick={payment.retryClaim}
+                  disabled={payment.claiming}
+                  className="px-3 py-1 rounded-md text-xs tracking-wide bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-white disabled:opacity-50 transition"
+                >
+                  {payment.claiming ? "CLAIMING..." : "RETRY CLAIM"}
+                </button>
+              )}
+            </div>
           )}
 
           <div className="relative isolate rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh] max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-[100svh] max-lg:max-h-[100svh] max-lg:z-40 max-lg:w-screen max-lg:aspect-auto max-lg:rounded-none max-lg:border-0 max-lg:shadow-none">
@@ -370,10 +385,14 @@ export default function HomePage() {
         </div>
       </footer>
 
-      {payment.invoice && !payment.hasPaid && (
+      {payment.invoice && !payment.hasPaid && !payment.invoiceHidden && (
         <PaymentModal
           invoice={payment.invoice}
           onClose={payment.cancelPayment}
+          paid={payment.invoicePaid}
+          claiming={payment.claiming}
+          claimError={payment.error}
+          onRetryClaim={payment.claimRetryable ? payment.retryClaim : undefined}
         />
       )}
 

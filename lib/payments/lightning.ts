@@ -59,19 +59,25 @@ export async function claimRankedCredit(params: {
   pubkey: string;
   claimSecret: string;
   authEvent?: unknown;
-}): Promise<{ token: string; seed?: number } | { error: string }> {
+}): Promise<{ token: string; seed?: number } | { error: string; retryable: boolean }> {
   try {
     const res = await fetch("/api/ranked-credit", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
-    const data = await res.json();
-    if (!res.ok || !data.token) {
-      return { error: data.error || "Could not claim ranked credit" };
+    const data = await res.json().catch(() => ({}));
+    if (res.ok && data.token) {
+      return { token: data.token, seed: data.seed };
     }
-    return { token: data.token, seed: data.seed };
-  } catch (err: any) {
-    return { error: err?.message || "Network error claiming credit" };
+    // Final: not paid (402), bad claim or banned (400/403), already used (409).
+    // Anything else, auth expiry (401) included, can succeed on a later try.
+    const final = [400, 402, 403, 409].includes(res.status);
+    return {
+      error: data.error || `Could not claim ranked credit (HTTP ${res.status})`,
+      retryable: !final,
+    };
+  } catch {
+    return { error: "Network error while claiming ranked credit.", retryable: true };
   }
 }
