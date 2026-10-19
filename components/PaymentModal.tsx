@@ -6,9 +6,20 @@ import { ENTRY_FEE_SATS, type InvoiceData } from "@/lib/payments/lightning";
 interface PaymentModalProps {
   invoice: InvoiceData;
   onClose: () => void;
+  paid?: boolean;
+  claiming?: boolean;
+  claimError?: string | null;
+  onRetryClaim?: () => void;
 }
 
-export default function PaymentModal({ invoice, onClose }: PaymentModalProps) {
+export default function PaymentModal({
+  invoice,
+  onClose,
+  paid,
+  claiming,
+  claimError,
+  onRetryClaim,
+}: PaymentModalProps) {
   const [copied, setCopied] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [qrError, setQrError] = useState(false);
@@ -77,40 +88,68 @@ export default function PaymentModal({ invoice, onClose }: PaymentModalProps) {
           </p>
         </div>
 
-        <div className="flex justify-center mb-5">
-          <div className="p-3 bg-white rounded-lg">
-            {qrDataUrl && !qrError ? (
-              <img
-                src={qrDataUrl}
-                alt="Lightning QR"
-                width={240}
-                height={240}
-                className="rounded"
-              />
+        {paid ? (
+          <div className="mb-2 space-y-3 text-center font-mono">
+            <div className="flex items-center justify-center gap-2 text-sm text-alien-green tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-alien-green" />
+              PAYMENT RECEIVED
+            </div>
+            {claimError ? (
+              <p className="text-xs text-red-400 leading-relaxed">{claimError}</p>
             ) : (
-              <div className="w-[240px] h-[240px] flex flex-col items-center justify-center text-black/50 text-sm gap-2 font-mono">
-                <span>{qrError ? "QR ERROR" : "BUILDING QR"}</span>
-                <span className="text-xs">USE COPY BELOW</span>
-              </div>
+              <p className="text-xs text-alien-cyan/80 tracking-wide">CLAIMING RANKED RUN</p>
             )}
+            {claimError && onRetryClaim && (
+              <button
+                onClick={onRetryClaim}
+                disabled={claiming}
+                className="w-full py-2.5 rounded-lg text-sm tracking-wide bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-white disabled:opacity-50 transition"
+              >
+                {claiming ? "CLAIMING..." : "RETRY CLAIM"}
+              </button>
+            )}
+            <p className="text-[10px] text-alien-muted tracking-wide leading-relaxed">
+              CLOSE THIS TO LOG IN OR KEEP PLAYING. YOUR PAYMENT STAYS SAVED.
+            </p>
           </div>
-        </div>
+        ) : (
+          <>
+            <div className="flex justify-center mb-5">
+              <div className="p-3 bg-white rounded-lg">
+                {qrDataUrl && !qrError ? (
+                  <img
+                    src={qrDataUrl}
+                    alt="Lightning QR"
+                    width={240}
+                    height={240}
+                    className="rounded"
+                  />
+                ) : (
+                  <div className="w-[240px] h-[240px] flex flex-col items-center justify-center text-black/50 text-sm gap-2 font-mono">
+                    <span>{qrError ? "QR ERROR" : "BUILDING QR"}</span>
+                    <span className="text-xs">USE COPY BELOW</span>
+                  </div>
+                )}
+              </div>
+            </div>
 
-        <div className="flex items-center justify-center gap-2 mb-4 text-xs text-alien-cyan/80 font-mono tracking-wide">
-          <span className="w-1.5 h-1.5 rounded-full bg-alien-cyan animate-pulse" />
-          SCANNING FOR PAYMENT
-        </div>
+            <div className="flex items-center justify-center gap-2 mb-4 text-xs text-alien-cyan/80 font-mono tracking-wide">
+              <span className="w-1.5 h-1.5 rounded-full bg-alien-cyan animate-pulse" />
+              SCANNING FOR PAYMENT
+            </div>
 
-        <button
-          onClick={handleCopy}
-          className="w-full py-2.5 rounded-lg text-sm font-mono tracking-wide bg-alien-panel hover:bg-white/5 border border-alien-border transition flex items-center justify-center gap-2 text-white/80"
-        >
-          {copied ? "COPIED" : "COPY INVOICE"}
-        </button>
+            <button
+              onClick={handleCopy}
+              className="w-full py-2.5 rounded-lg text-sm font-mono tracking-wide bg-alien-panel hover:bg-white/5 border border-alien-border transition flex items-center justify-center gap-2 text-white/80"
+            >
+              {copied ? "COPIED" : "COPY INVOICE"}
+            </button>
 
-        <p className="mt-4 text-center text-[10px] text-alien-muted tracking-wide leading-relaxed">
-          SCAN WITH ANY LIGHTNING WALLET
-        </p>
+            <p className="mt-4 text-center text-[10px] text-alien-muted tracking-wide leading-relaxed">
+              SCAN WITH ANY LIGHTNING WALLET
+            </p>
+          </>
+        )}
       </div>
     </div>
   );
