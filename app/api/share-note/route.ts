@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyEvent, type Event } from "nostr-tools";
 import { publishSignedNote } from "@/lib/nostr/sitePublish";
+import { shareNoteScore } from "@/lib/nostr/shareNote";
+import { isBanned } from "@/lib/security/blockList";
+import { MAX_RANKED_SCORE } from "@/lib/security/rankedToken";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 
 export async function POST(req: NextRequest) {
@@ -19,10 +22,20 @@ export async function POST(req: NextRequest) {
   if (!event || event.kind !== 1 || !verifyEvent(event)) {
     return NextResponse.json({ error: "Invalid note" }, { status: 400 });
   }
-  const tags = event.tags || [];
-  const tagged = tags.some((tag) => tag[0] === "t" && tag[1] === "holdbtc");
-  if (!tagged || !event.content.includes("holdbtc.io") || event.content.length > 800) {
+  if (isBanned(event.pubkey)) {
+    return NextResponse.json({ error: "This account cannot share" }, { status: 403 });
+  }
+  const score = shareNoteScore(event.content, event.tags);
+  if (score === null || score > MAX_RANKED_SCORE) {
     return NextResponse.json({ error: "Note is not a Hold BTC share" }, { status: 400 });
+  }
+
+  const pkLimit = rateLimit(`share-pk:${event.pubkey}`, 3, 10 * 60_000);
+  if (!pkLimit.ok) {
+    return NextResponse.json(
+      { error: "You shared recently. Try again in a few minutes." },
+      { status: 429, headers: { "Retry-After": String(pkLimit.retryAfterSec) } }
+    );
   }
 
   const acks = await publishSignedNote(event);

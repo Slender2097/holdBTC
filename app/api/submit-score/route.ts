@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { findScoreByInvoice, publishAttestedScore } from "@/lib/nostr/sitePublish";
+import { isBanned } from "@/lib/security/blockList";
 import { markSubmitPublished, reserveSubmit, type SubmitRecord } from "@/lib/security/invoiceStore";
 import { clientIp, rateLimit } from "@/lib/security/rateLimit";
 import { MAX_RANKED_SCORE, verifyRankedToken } from "@/lib/security/rankedToken";
@@ -21,6 +22,9 @@ export async function POST(req: NextRequest) {
   const payload = verifyRankedToken(String(body.token || ""));
   if (!payload || payload.seed == null) {
     return NextResponse.json({ error: "Invalid or expired ranked token" }, { status: 401 });
+  }
+  if (isBanned(payload.pubkey)) {
+    return NextResponse.json({ error: "This account cannot submit ranked scores" }, { status: 403 });
   }
 
   const flaps = Array.isArray(body.flaps) ? body.flaps : [];

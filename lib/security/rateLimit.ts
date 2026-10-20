@@ -39,20 +39,8 @@ export function rateLimit(key: string, max: number, windowMs: number): {
   return { ok: true, retryAfterSec: Math.ceil((current.resetAt - now) / 1000) };
 }
 
-/** Prefer platform IP. Last X-Forwarded-For hop only after that. */
+/** Only the IP Vercel sets. Other IP headers can come from the client, so they are ignored. */
 export function clientIp(req: Request): string {
-  const h = req.headers;
-  const vercel = h.get("x-vercel-forwarded-for");
-  if (vercel) return vercel.split(",")[0].trim();
-
-  const real = h.get("x-real-ip");
-  if (real) return real.trim();
-
-  const forwarded = h.get("x-forwarded-for");
-  if (forwarded) {
-    const parts = forwarded.split(",").map((p) => p.trim()).filter(Boolean);
-    if (parts.length) return parts[parts.length - 1];
-  }
-
-  return "unknown";
+  const vercel = req.headers.get("x-vercel-forwarded-for");
+  return vercel?.split(",")[0].trim() || "unknown";
 }
