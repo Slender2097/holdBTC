@@ -3,10 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   createEphemeralKey,
-  fetchProfiles,
+  fetchOwnProfile,
   getNip07PublicKey,
   requestNip07PublicKey,
-  publishScore as publishScoreEvent,
   publishNote as publishNoteEvent,
   type NostrProfile,
 } from "@/lib/nostr/client";
@@ -24,7 +23,8 @@ export interface NostrUser {
 }
 
 const STORAGE_KEY = "holdbtc_nostr_user";
-const SESSION_SK_KEY = "holdbtc_nsec_sk";
+// Pasted nsec or ephemeral key, kept in localStorage until logout (like Primal web).
+const SK_KEY = "holdbtc_nsec_sk";
 const NIP07_RESUME_KEY = "holdbtc_nip07_resume";
 
 function skToHex(sk: Uint8Array): string {
@@ -42,27 +42,48 @@ function hexToSk(hex: string): Uint8Array | null {
   return out;
 }
 
-function saveSessionSk(sk: Uint8Array) {
+function saveSk(sk: Uint8Array) {
+  const hex = skToHex(sk);
   try {
-    sessionStorage.setItem(SESSION_SK_KEY, skToHex(sk));
+    localStorage.setItem(SK_KEY, hex);
+    sessionStorage.removeItem(SK_KEY);
+    return;
+  } catch {
+    /* fall back to this tab only */
+  }
+  try {
+    sessionStorage.setItem(SK_KEY, hex);
   } catch {
     /* ignore */
   }
 }
 
-function loadSessionSk(): Uint8Array | null {
+function loadSk(): Uint8Array | null {
   try {
-    const raw = sessionStorage.getItem(SESSION_SK_KEY);
-    if (!raw) return null;
-    return hexToSk(raw);
+    const stored = localStorage.getItem(SK_KEY);
+    if (stored) return hexToSk(stored);
+  } catch {
+    /* ignore */
+  }
+  try {
+    // Logins from before the key moved to localStorage.
+    const legacy = sessionStorage.getItem(SK_KEY);
+    const sk = legacy ? hexToSk(legacy) : null;
+    if (sk) saveSk(sk);
+    return sk;
   } catch {
     return null;
   }
 }
 
-function clearSessionSk() {
+function clearSk() {
   try {
-    sessionStorage.removeItem(SESSION_SK_KEY);
+    localStorage.removeItem(SK_KEY);
+  } catch {
+    /* ignore */
+  }
+  try {
+    sessionStorage.removeItem(SK_KEY);
   } catch {
     /* ignore */
   }
@@ -107,7 +128,7 @@ function clearUserStorage() {
   } catch {
     /* ignore */
   }
-  clearSessionSk();
+  clearSk();
 }
 
 
@@ -146,8 +167,7 @@ export function useNostr() {
 
   const loadProfile = useCallback(async (pubkey: string) => {
     try {
-      const profiles = await fetchProfiles([pubkey]);
-      const profile = profiles.get(pubkey);
+      const profile = await fetchOwnProfile(pubkey);
       if (profile) {
         setUser((prev) =>
           prev && prev.pubkey === pubkey
@@ -184,11 +204,11 @@ export function useNostr() {
             return;
           }
           skRef.current = null;
-          clearSessionSk();
+          clearSk();
         }
 
         if (saved.mode === "nsec" || saved.mode === "ephemeral") {
-          const sk = loadSessionSk();
+          const sk = loadSk();
           if (!sk) {
             clearUserStorage();
             return;
@@ -253,7 +273,7 @@ export function useNostr() {
         }
         const pk = result.pubkey;
         skRef.current = null;
-        clearSessionSk();
+        clearSk();
         const next: NostrUser = { pubkey: pk, npub: toNpub(pk), mode: "nip07" };
         setUser(next);
         saveUserToStorage(next);
@@ -287,7 +307,7 @@ export function useNostr() {
 
       const pk = getPublicKey(sk);
       skRef.current = sk;
-      saveSessionSk(sk);
+      saveSk(sk);
       const next: NostrUser = {
         pubkey: pk,
         npub: toNpub(pk),
@@ -304,7 +324,7 @@ export function useNostr() {
   const loginEphemeral = useCallback(() => {
     const { sk, pk, npub } = createEphemeralKey();
     skRef.current = sk;
-    saveSessionSk(sk);
+    saveSk(sk);
     const next: NostrUser = { pubkey: pk, npub, mode: "ephemeral" };
     setUser(next);
     saveUserToStorage(next);
@@ -319,6 +339,22 @@ export function useNostr() {
     setUser(null);
     setError(null);
     clearUserStorage();
+  }, []);
+
+  // Logout in another tab removes the saved login; drop the key here too.
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.storageArea !== localStorage) return;
+      if (e.key !== null && e.key !== STORAGE_KEY) return;
+      if (e.key !== null && e.newValue !== null) return;
+      if (skRef.current) {
+        skRef.current.fill(0);
+        skRef.current = null;
+      }
+      setUser(null);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
   }, []);
 
   const signEvent = useCallback(
@@ -336,22 +372,6 @@ export function useNostr() {
       throw new Error("Use a Nostr extension, or login again with nsec.");
     },
     [user?.mode]
-  );
-
-  const publishScore = useCallback(
-    async (score: number, distance: number) => {
-      if (!user) return null;
-      if (user.mode !== "nip07" && !skRef.current) {
-        setError("Session key missing. Login again with nsec to publish.");
-        return null;
-      }
-      return publishScoreEvent({
-        score,
-        distance,
-        sk: user.mode === "nip07" ? null : skRef.current,
-      });
-    },
-    [user]
   );
 
   const publishNote = useCallback(
@@ -380,7 +400,6 @@ export function useNostr() {
     loginEphemeral,
     logout,
     signEvent,
-    publishScore,
     publishNote,
     isLoggedIn: !!user,
   };

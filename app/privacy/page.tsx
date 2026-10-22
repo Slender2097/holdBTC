@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         Back to game
       </a>
       <h1 className="mt-4 text-2xl text-white tracking-wide">Privacy</h1>
-      <p className="mt-2 text-xs">7 October 2026</p>
+      <p className="mt-2 text-xs">22 October 2026</p>
 
       <section className="mt-8 space-y-3">
         <h2 className="text-white text-base">Free play</h2>
@@ -30,9 +30,9 @@ export default function PrivacyPage() {
         <h2 className="text-white text-base">Nostr login</h2>
         <p>
           Ranked play uses your Nostr public key. An extension login is preferred.
-          A pasted private key stays in that tab and is NOT sent to the server.
-          The board reads your display name and picture from your public Nostr
-          profile.
+          A pasted private key is saved in that browser&apos;s localStorage until you
+          log out, and is NOT sent to the server. The server reads your display
+          name and picture from your public Nostr profile.
         </p>
       </section>
 
