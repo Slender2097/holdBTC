@@ -88,8 +88,12 @@ export async function strikeGetInvoice(invoiceId: string): Promise<{
     cache: "no-store",
   });
 
+  if (res.status === 404) {
+    return { paid: false, state: "NOT_FOUND", amountSats: null };
+  }
   if (!res.ok) {
-    return { paid: false, state: "UNKNOWN", amountSats: null };
+    // An outage or rate limit is not "unpaid": ranked-credit must answer with a retryable error.
+    throw new Error(`Strike get invoice failed (${res.status})`);
   }
 
   const data = await res.json();
