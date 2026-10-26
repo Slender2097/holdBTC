@@ -10,6 +10,12 @@ export const RANKED_WORLD_H = 720;
 export const RANKED_TICK_MS = 1000 / 60;
 export const MAX_REPLAY_FRAMES = 216_000;
 export const MAX_FLAPS = 40_000;
+// Replay size bounds. They must cover every play area the page can produce (tall
+// portrait tablets, narrow folded phones), or the server replays a different world.
+export const RANKED_MIN_W = 160;
+export const RANKED_MAX_W = 1400;
+export const RANKED_MIN_H = 160;
+export const RANKED_MAX_H = 4096;
 
 export function getYearFromScore(score: number): number {
   return GAME.START_YEAR + Math.floor(score / GAME.PIPS_PER_YEAR);
@@ -262,8 +268,8 @@ export function replayRun(params: {
   height?: number;
   maxFrames?: number;
 }): { score: number; distance: number; frames: number; dead: boolean } {
-  const width = Math.min(1400, Math.max(320, Math.floor(params.width || RANKED_WORLD_W)));
-  const height = Math.min(900, Math.max(240, Math.floor(params.height || RANKED_WORLD_H)));
+  const width = Math.min(RANKED_MAX_W, Math.max(RANKED_MIN_W, Math.floor(params.width || RANKED_WORLD_W)));
+  const height = Math.min(RANKED_MAX_H, Math.max(RANKED_MIN_H, Math.floor(params.height || RANKED_WORLD_H)));
   const maxFrames = Math.min(params.maxFrames ?? MAX_REPLAY_FRAMES, MAX_REPLAY_FRAMES);
   const flaps = [...new Set(params.flaps.map((n) => Math.floor(n)))]
     .filter((n) => n >= 0 && n <= maxFrames)
