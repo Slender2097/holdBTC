@@ -184,8 +184,8 @@ export default function NostrLogin({
         <div className="absolute top-[calc(100%+10px)] right-0 w-[min(20rem,calc(100vw-1.5rem))] z-50">
           <div className="alien-panel rounded-xl border border-red-500/30 shadow-glow p-3.5">
             <p className="text-xs text-red-300/90 font-mono leading-relaxed mb-3">
-              Private key stays in this tab, including refresh. Close the tab
-              to wipe it. An extension is still safer.
+              Private key is saved in this browser until you log out. It is
+              never sent to the server. An extension is still safer.
             </p>
             <div className="flex gap-1.5">
               <input
