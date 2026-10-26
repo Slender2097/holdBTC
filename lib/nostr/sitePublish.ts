@@ -22,6 +22,10 @@ const DEFAULT_RELAYS = [
   "wss://relay.snort.social",
 ];
 
+// Without a timeout a relay that never finishes the WebSocket handshake stalls the publish,
+// and every later lookup on that warm instance waits on the same pending connection.
+const RELAY_CONNECT_MS = 4000;
+
 function siteSecret(): Uint8Array {
   const raw = process.env.HOLD_BTC_NSEC;
   if (!raw) throw new Error("HOLD_BTC_NSEC is not set");
@@ -97,7 +101,7 @@ export async function publishAttestedScore(params: {
   await Promise.all(
     DEFAULT_RELAYS.map(async (url) => {
       try {
-        await p.ensureRelay(url);
+        await p.ensureRelay(url, { connectionTimeout: RELAY_CONNECT_MS });
         const pub = p.publish([url], event);
         const list = Array.isArray(pub) ? pub : [pub];
         await Promise.race([
@@ -195,7 +199,7 @@ export async function publishSignedNote(event: Event): Promise<number> {
   await Promise.all(
     DEFAULT_RELAYS.map(async (url) => {
       try {
-        await p.ensureRelay(url);
+        await p.ensureRelay(url, { connectionTimeout: RELAY_CONNECT_MS });
         const pub = p.publish([url], event);
         const list = Array.isArray(pub) ? pub : [pub];
         await Promise.race([
