@@ -122,7 +122,7 @@ export default function GameCanvas({
             height: ph,
           });
         }
-        renderFrame(ctx, next, viewW, viewH, ranked);
+        renderFrame(ctx, next, viewW, viewH);
       } else {
         const dt = Math.min(
           Math.max(lastTimeRef.current ? (time - lastTimeRef.current) / 16.666 : 1, 0.5),
@@ -133,7 +133,7 @@ export default function GameCanvas({
         const next = updateGame(prev, dt, viewW, viewH, Math.random);
         stateRef.current = next;
         if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
-        renderFrame(ctx, next, viewW, viewH, ranked);
+        renderFrame(ctx, next, viewW, viewH);
         if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
           gameOverSent.current = true;
           stopMusic();
