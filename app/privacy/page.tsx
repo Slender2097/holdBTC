@@ -15,7 +15,7 @@ export default function PrivacyPage() {
         Back to game
       </a>
       <h1 className="mt-4 text-2xl text-white tracking-wide">Privacy</h1>
-      <p className="mt-2 text-xs">22 October 2026</p>
+      <p className="mt-2 text-xs">27 October 2026</p>
 
       <section className="mt-8 space-y-3">
         <h2 className="text-white text-base">Free play</h2>
@@ -40,6 +40,25 @@ export default function PrivacyPage() {
         <h2 className="text-white text-base">Paid runs</h2>
         <p>
           A ranked entry is 1000 sats. One payment is one ranked run.
+        </p>
+      </section>
+
+      <section className="mt-8 space-y-3">
+        <h2 className="text-white text-base">Analytics</h2>
+        <p>
+          Page views are counted with Vercel Web Analytics. Each view records the
+          page address, the site that linked you, your approximate location, and
+          your browser, operating system, and device type. Visitors are counted
+          anonymously without third-party cookies, and a visitor session is
+          discarded after 24 hours. Analytics does not record your Nostr key,
+          your scores, or your payments. See{" "}
+          <a
+            href="https://vercel.com/docs/analytics/privacy-policy"
+            className="text-alien-cyan/80 hover:text-alien-cyan"
+          >
+            Vercel&apos;s analytics privacy notes
+          </a>
+          .
         </p>
       </section>
 
