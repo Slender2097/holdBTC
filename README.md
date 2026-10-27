@@ -19,7 +19,7 @@ npm install
 npm run dev
 ```
 
-Create `.env.local` (do not commit it):
+Create `.env.local`:
 
 ```
 STRIKE_API_KEY=
