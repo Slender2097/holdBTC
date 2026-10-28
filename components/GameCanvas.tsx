@@ -12,14 +12,15 @@ import { mulberry32, type Rng } from "@/lib/game/rng";
 import { renderFrame, resetFrameDamage } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
 import YearStage from "@/components/year/YearStage";
+import YearStill from "@/components/year/YearStill";
 import { musicMuted, playSfx, startMusic, startRankedMusic, stopMusic, toggleMusic } from "@/lib/game/music";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-// Phone (coarse pointer). Server render and hydration say false.
+// Phone (coarse pointer). null during server render and hydration.
 const isPhone = () => window.matchMedia("(pointer: coarse)").matches;
 const noSubscribe = () => () => {};
-const usePhone = () => useSyncExternalStore(noSubscribe, isPhone, () => false);
+const usePhone = () => useSyncExternalStore<boolean | null>(noSubscribe, isPhone, () => null);
 
 export type RunLog = {
   score: number;
@@ -62,7 +63,8 @@ export default function GameCanvas({
   const [year, setYear] = useState(2008);
   const gameOverSent = useRef(false);
   const ranked = rankedSeed != null;
-  const phone = usePhone();
+  const phoneOrNull = usePhone();
+  const phone = phoneOrNull === true;
   const phoneRef = useRef(phone);
   phoneRef.current = phone;
 
@@ -220,7 +222,14 @@ export default function GameCanvas({
       className={`relative w-full h-full min-h-[320px] max-lg:min-h-0 overflow-hidden ${className}`}
       style={{ isolation: "isolate" }}
     >
-      <YearStage year={year} live={ranked && !phone} clip={ranked} />
+      {phoneOrNull === null ? null : phone && !ranked ? (
+        // Phone free play: one still image per year, no iframe and no clip.
+        // Nothing until hydration knows the device, so a phone never starts
+        // loading the iframe scene.
+        <YearStill year={year} />
+      ) : (
+        <YearStage year={year} live={ranked && !phone} clip={ranked} />
+      )}
       <button
         type="button"
         aria-label="Mute music"

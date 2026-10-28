@@ -69,9 +69,20 @@ export default function PaymentModal({
   };
 
   return (
-    // Phone: a bottom sheet that starts under the header, so login stays reachable
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm max-lg:top-[calc(3.5rem+env(safe-area-inset-top))] max-lg:items-end max-lg:p-0">
-      <div className="w-full max-w-sm alien-panel rounded-xl p-6 shadow-glow relative border border-alien-cyan/20 max-lg:max-w-none max-lg:max-h-full max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:rounded-b-none max-lg:rounded-t-2xl max-lg:p-5 max-lg:pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+    // Phone, invoice step: a bottom sheet that starts under the header, so login
+    // stays reachable. Payment received: centered, the same as desktop.
+    <div
+      className={`fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm ${
+        paid ? "" : "max-lg:top-[calc(3.5rem+env(safe-area-inset-top))] max-lg:items-end max-lg:p-0"
+      }`}
+    >
+      <div
+        className={`w-full max-w-sm alien-panel rounded-xl p-6 shadow-glow relative border border-alien-cyan/20 ${
+          paid
+            ? ""
+            : "max-lg:max-w-none max-lg:max-h-full max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:rounded-b-none max-lg:rounded-t-2xl max-lg:p-5 max-lg:pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+        }`}
+      >
         <button
           onClick={onClose}
           aria-label="Close"
