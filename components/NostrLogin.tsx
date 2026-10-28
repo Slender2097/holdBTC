@@ -107,7 +107,7 @@ export default function NostrLogin({
     const picture = safeHttpsImageUrl(user.profile?.picture);
 
     return (
-      <div className="flex items-center h-11 rounded-full bg-alien-panel/80 border border-alien-border pl-1 pr-2">
+      <div className="flex items-center h-11 max-lg:h-9 rounded-full bg-alien-panel/80 border border-alien-border pl-1 pr-2">
         <div className="w-8 h-8 rounded-full overflow-hidden bg-alien-void border border-alien-cyan/30 shrink-0 flex items-center justify-center">
           {picture ? (
             <img
@@ -162,15 +162,15 @@ export default function NostrLogin({
             if (askTerms("nip07")) return;
             onLoginNip07();
           }}
-          className="h-11 px-4 text-sm font-semibold rounded-full bg-alien-purple hover:bg-alien-purple/90 text-white transition disabled:opacity-50 tracking-wide border border-alien-purple/50 shadow-[0_0_12px_rgba(177,78,255,0.25)]"
+          className="h-11 px-4 text-sm font-semibold rounded-full max-lg:h-9 max-lg:px-3 max-lg:text-xs whitespace-nowrap bg-alien-purple hover:bg-alien-purple/90 text-white transition disabled:opacity-50 tracking-wide border border-alien-purple/50 shadow-[0_0_12px_rgba(177,78,255,0.25)]"
         >
-          {loading ? "..." : "NOSTR EXTENSION"}
+          {loading ? "..." : <>NOSTR<span className="max-sm:hidden"> EXTENSION</span></>}
         </button>
 
         <button
           onClick={() => { if (showNsec) { setShowNsec(false); return; } if (!askTerms("nsec")) setShowNsec(true); }}
           aria-expanded={showNsec}
-          className={`h-11 px-4 text-sm font-mono rounded-full border transition tracking-wide ${
+          className={`h-11 px-4 text-sm font-mono rounded-full border transition tracking-wide max-lg:h-9 max-lg:px-3 max-lg:text-xs ${
             showNsec
               ? "bg-alien-panel border-alien-cyan/40 text-white"
               : "bg-alien-panel border-alien-border text-alien-muted hover:text-white hover:border-alien-cyan/40"

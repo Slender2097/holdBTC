@@ -69,11 +69,13 @@ export default function PaymentModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-      <div className="w-full max-w-sm alien-panel rounded-xl p-6 shadow-glow relative border border-alien-cyan/20">
+    // Phone: a bottom sheet that starts under the header, so login stays reachable
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm max-lg:top-[calc(3.5rem+env(safe-area-inset-top))] max-lg:items-end max-lg:p-0">
+      <div className="w-full max-w-sm alien-panel rounded-xl p-6 shadow-glow relative border border-alien-cyan/20 max-lg:max-w-none max-lg:max-h-full max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:rounded-b-none max-lg:rounded-t-2xl max-lg:p-5 max-lg:pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
         <button
           onClick={onClose}
-          className="absolute top-3 right-3 w-8 h-8 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center text-alien-muted hover:text-white transition text-sm"
+          aria-label="Close"
+          className="absolute top-3 right-3 w-8 h-8 max-lg:w-10 max-lg:h-10 rounded-md bg-white/5 hover:bg-white/10 flex items-center justify-center text-alien-muted hover:text-white transition text-sm"
         >
           X
         </button>
@@ -103,7 +105,7 @@ export default function PaymentModal({
               <button
                 onClick={onRetryClaim}
                 disabled={claiming}
-                className="w-full py-2.5 rounded-lg text-sm tracking-wide bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-white disabled:opacity-50 transition"
+                className="w-full py-2.5 max-lg:py-3.5 rounded-lg text-sm tracking-wide bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-white disabled:opacity-50 transition"
               >
                 {claiming ? "CLAIMING..." : "RETRY CLAIM"}
               </button>
@@ -122,10 +124,10 @@ export default function PaymentModal({
                     alt="Lightning QR"
                     width={240}
                     height={240}
-                    className="rounded"
+                    className="rounded max-lg:w-[min(68vw,300px,48svh)] max-lg:h-auto max-lg:[image-rendering:pixelated]"
                   />
                 ) : (
-                  <div className="w-[240px] h-[240px] flex flex-col items-center justify-center text-black/50 text-sm gap-2 font-mono">
+                  <div className="w-[240px] h-[240px] max-lg:w-[min(68vw,300px,48svh)] max-lg:h-auto max-lg:aspect-square flex flex-col items-center justify-center text-black/50 text-sm gap-2 font-mono">
                     <span>{qrError ? "QR ERROR" : "BUILDING QR"}</span>
                     <span className="text-xs">USE COPY BELOW</span>
                   </div>
@@ -140,10 +142,17 @@ export default function PaymentModal({
 
             <button
               onClick={handleCopy}
-              className="w-full py-2.5 rounded-lg text-sm font-mono tracking-wide bg-alien-panel hover:bg-white/5 border border-alien-border transition flex items-center justify-center gap-2 text-white/80"
+              className="w-full py-2.5 rounded-lg text-sm font-mono tracking-wide bg-alien-panel hover:bg-white/5 border border-alien-border transition flex items-center justify-center gap-2 text-white/80 max-lg:py-3.5 max-lg:bg-alien-cyan max-lg:hover:bg-alien-cyan/90 max-lg:border-alien-cyan max-lg:text-alien-void max-lg:font-semibold"
             >
               {copied ? "COPIED" : "COPY INVOICE"}
             </button>
+
+            <a
+              href={`lightning:${invoice.payment_request}`}
+              className="lg:hidden mt-2.5 w-full py-3.5 rounded-lg text-sm font-mono tracking-wide bg-alien-panel border border-alien-border flex items-center justify-center text-white/80"
+            >
+              OPEN IN WALLET
+            </a>
 
             <p className="mt-4 text-center text-[10px] text-alien-muted tracking-wide leading-relaxed">
               SCAN WITH ANY LIGHTNING WALLET

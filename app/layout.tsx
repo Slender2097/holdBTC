@@ -21,6 +21,8 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  // Lets the phone layout pad for the notch and home indicator (env(safe-area-inset-*))
+  viewportFit: "cover",
   themeColor: "#03040a",
 };
 

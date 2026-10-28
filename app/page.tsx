@@ -93,6 +93,26 @@ export default function HomePage() {
   // The ranked run shown in the Game Over modal, kept until the server confirms an eventId
   const pendingSubmitRef = useRef<PendingRun | null>(null);
   const resumedRef = useRef(false);
+  // Phone only (below lg): leaderboard and protocol open as a bottom sheet
+  const [sheet, setSheet] = useState<"board" | "protocol" | null>(null);
+  const [runActive, setRunActive] = useState(false);
+
+  // body.game-active locks scroll and touch gestures below lg (globals.css)
+  useEffect(() => {
+    document.body.classList.toggle("game-active", runActive);
+    return () => document.body.classList.remove("game-active");
+  }, [runActive]);
+
+  useEffect(() => {
+    if (!sheet) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSheet(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [sheet]);
+
+  const handleRunStart = useCallback(() => setRunActive(true), []);
 
   useEffect(() => {
     if (nostr.isLoggedIn) setRankedWarning(null);
@@ -178,6 +198,7 @@ export default function HomePage() {
 
   const handleGameOver = useCallback(
     (score: number, distance: number, log?: RunLog) => {
+      setRunActive(false);
       // Capture whether this run was ranked BEFORE ending the ranked run
       const ranked = payment.hasPaid;
       const token = payment.rankedToken;
@@ -223,6 +244,7 @@ export default function HomePage() {
 
   const handlePlayAgain = useCallback(() => {
     rankedModalRef.current = false;
+    setRunActive(false);
     setShowGameOver(false);
     setLastScore(null);
     setWasRanked(false);
@@ -258,7 +280,7 @@ export default function HomePage() {
   }, [lastScore, lastDistance, nostr, notePublishing, notePublished]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="phone-shell min-h-screen flex flex-col max-lg:h-[100svh] max-lg:min-h-0 max-lg:overflow-hidden">
       <Header
         user={nostr.user}
         loading={nostr.loading}
@@ -269,19 +291,19 @@ export default function HomePage() {
         onLogout={nostr.logout}
       />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6">
-        <div className="flex-1 flex flex-col gap-4 min-w-0">
-          <div className="flex flex-wrap items-center justify-between gap-3">
+      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 max-lg:min-h-0 max-lg:p-0 max-lg:gap-0">
+        <div className="flex-1 flex flex-col gap-4 min-w-0 max-lg:min-h-0 max-lg:gap-0">
+          <div className="phone-bar flex flex-wrap items-center justify-between gap-3 max-lg:flex-nowrap max-lg:gap-2 max-lg:px-3 max-lg:py-1.5 max-lg:border-b max-lg:border-alien-border/60 max-lg:bg-alien-deep/90">
             <PaymentButton
               hasPaid={payment.hasPaid}
               paying={payment.paying || !!payment.invoice}
               onPay={handlePayClick}
             />
-            <div className="flex items-center gap-4 text-xs text-alien-muted font-mono">
-              <span>
+            <div className="flex items-center gap-4 text-xs text-alien-muted font-mono max-lg:gap-2.5 max-lg:text-[10px] max-lg:ml-auto max-lg:shrink-0">
+              <span className="max-sm:hidden">
                 GAMES <span className="text-white/80">{payment.gamesPlayed}</span>
               </span>
-              <span title="Local counter only">
+              <span title="Local counter only" className="max-sm:hidden">
                 LOCAL SATS <span className="text-alien-cyan">{payment.totalPaidSats}</span>
               </span>
               {personalBest > 0 && (
@@ -289,23 +311,39 @@ export default function HomePage() {
                   BEST <span className="text-alien-green">{personalBest}</span>
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setSheet("board")}
+                aria-label="Open leaderboard"
+                className="lg:hidden h-8 px-2.5 rounded-md border border-alien-border bg-alien-panel text-[10px] tracking-[0.14em] text-alien-cyan"
+              >
+                RANK
+              </button>
+              <button
+                type="button"
+                onClick={() => setSheet("protocol")}
+                aria-label="How it works"
+                className="lg:hidden h-8 w-8 rounded-md border border-alien-border bg-alien-panel text-xs text-white/80"
+              >
+                ?
+              </button>
             </div>
           </div>
 
           {rankedWarning && (
-            <p className="text-sm text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded-lg px-3 py-2 font-mono">
+            <p className="text-sm text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded-lg px-3 py-2 font-mono max-lg:mx-3 max-lg:mt-2 max-lg:text-xs max-lg:py-1.5">
               {rankedWarning}
             </p>
           )}
 
           {payment.error && (
-            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-red-400 bg-red-950/40 border border-red-500/20 rounded-lg px-3 py-2 font-mono">
+            <div className="flex flex-wrap items-center justify-between gap-2 text-sm text-red-400 bg-red-950/40 border border-red-500/20 rounded-lg px-3 py-2 font-mono max-lg:mx-3 max-lg:mt-2 max-lg:text-xs max-lg:py-1.5">
               <span>{payment.error}</span>
               {payment.invoiceHidden && payment.claimRetryable && (
                 <button
                   onClick={payment.retryClaim}
                   disabled={payment.claiming}
-                  className="px-3 py-1 rounded-md text-xs tracking-wide bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-white disabled:opacity-50 transition"
+                  className="px-3 py-1 max-lg:py-2 rounded-md text-xs tracking-wide bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-white disabled:opacity-50 transition"
                 >
                   {payment.claiming ? "CLAIMING..." : "RETRY CLAIM"}
                 </button>
@@ -313,7 +351,7 @@ export default function HomePage() {
             </div>
           )}
 
-          <div className="relative isolate rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh] max-lg:fixed max-lg:inset-x-0 max-lg:top-0 max-lg:h-[100svh] max-lg:max-h-[100svh] max-lg:z-40 max-lg:w-screen max-lg:aspect-auto max-lg:rounded-none max-lg:border-0 max-lg:shadow-none">
+          <div className="relative isolate rounded-xl overflow-hidden border border-alien-border shadow-glow bg-alien-void aspect-[4/3] w-full max-h-[58vh] sm:max-h-[62vh] lg:max-h-[70vh] max-lg:flex-1 max-lg:min-h-0 max-lg:!max-h-none max-lg:aspect-auto max-lg:rounded-none max-lg:border-0 max-lg:shadow-none">
             <div className="h-full w-full">
               <GameCanvas
                 key={`${gameKey}-${payment.hasPaid ? payment.rankedSeed ?? "r" : "free"}`}
@@ -321,16 +359,26 @@ export default function HomePage() {
                 highScore={personalBest}
                 rankedSeed={payment.hasPaid ? payment.rankedSeed : null}
                 onGameOver={handleGameOver}
+                onRunStart={handleRunStart}
               />
             </div>
           </div>
 
-          <p className="text-center text-[11px] text-alien-muted tracking-wide">
+          <p className="text-center text-[11px] text-alien-muted tracking-wide max-lg:hidden">
             FREE TO PLAY — PAY 1000 SATS ONLY FOR GLOBAL RANK ENTRY
           </p>
         </div>
 
-        <aside className="w-full lg:w-80 shrink-0 space-y-4">
+        <aside
+          className={`w-full lg:w-80 shrink-0 space-y-4 ${
+            sheet
+              ? "max-lg:fixed max-lg:inset-x-0 max-lg:bottom-0 max-lg:z-50 max-lg:flex max-lg:flex-col max-lg:gap-3 max-lg:space-y-0 max-lg:max-h-[85svh] max-lg:overflow-y-auto max-lg:overscroll-contain max-lg:rounded-t-2xl max-lg:border-t max-lg:border-alien-border max-lg:bg-alien-deep max-lg:p-3 max-lg:pb-[calc(0.75rem+env(safe-area-inset-bottom))]"
+              : "max-lg:hidden"
+          }`}
+          role={sheet ? "dialog" : undefined}
+          aria-modal={sheet ? true : undefined}
+        >
+          <div className={sheet === "protocol" ? "max-lg:hidden" : undefined}>
           <Leaderboard
             refreshKey={leaderboardKey}
             currentUserPubkey={nostr.user?.pubkey}
@@ -343,8 +391,9 @@ export default function HomePage() {
             currentUserPicture={nostr.user?.profile?.picture || null}
             personalBest={personalBest}
           />
+          </div>
 
-          <div className="alien-panel rounded-xl p-4 text-sm text-alien-muted space-y-3">
+          <div className={`alien-panel rounded-xl p-4 text-sm text-alien-muted space-y-3 ${sheet === "board" ? "max-lg:hidden" : ""}`}>
             <p className="font-medium text-alien-cyan tracking-widest text-xs uppercase">
               Protocol
             </p>
@@ -355,11 +404,44 @@ export default function HomePage() {
               <li>Ranked score goes to Global Rank</li>
               <li>Share as Nostr post (optional)</li>
             </ol>
+            <div className="lg:hidden space-y-2 pt-1 text-[10px] tracking-[0.16em]">
+              <p>FREE TO PLAY — PAY 1000 SATS ONLY FOR GLOBAL RANK ENTRY</p>
+              <p>
+                <a href="/terms" className="text-alien-cyan/80">TERMS</a>
+                <span className="mx-2">/</span>
+                <a href="/privacy" className="text-alien-cyan/80">PRIVACY</a>
+                <span className="mx-2">/</span>
+                <a href="https://github.com/Slender2097/holdBTC" target="_blank" rel="noreferrer" className="text-alien-cyan/80">GITHUB</a>
+              </p>
+            </div>
+          </div>
+
+          {/* Last so space-y on desktop is unchanged; order-first on the phone sheet */}
+          <div className="lg:hidden order-first flex items-center justify-between">
+            <p className="text-[10px] font-mono tracking-[0.3em] uppercase text-alien-cyan">
+              {sheet === "protocol" ? "Protocol" : "Global Rank"}
+            </p>
+            <button
+              type="button"
+              onClick={() => setSheet(null)}
+              aria-label="Close"
+              className="h-9 w-9 rounded-md bg-white/5 text-alien-muted text-sm"
+            >
+              X
+            </button>
           </div>
         </aside>
       </main>
 
-      <footer className="border-t border-alien-border/60 py-4 px-4">
+      {sheet && (
+        <div
+          className="lg:hidden fixed inset-0 z-[45] bg-black/60"
+          onClick={() => setSheet(null)}
+          aria-hidden
+        />
+      )}
+
+      <footer className="border-t border-alien-border/60 py-4 px-4 max-lg:hidden">
         <div className="max-w-5xl mx-auto flex items-end justify-between gap-4">
           <a
             href="https://github.com/Slender2097/holdBTC"

@@ -16,6 +16,11 @@ import { musicMuted, playSfx, startMusic, startRankedMusic, stopMusic, toggleMus
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
+// Phone: free play uses the pre-recorded clips too. The scripted iframe runs
+// on the main thread and makes the game lag on a phone.
+const isPhone = () =>
+  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+
 export type RunLog = {
   score: number;
   distance: number;
@@ -56,6 +61,7 @@ export default function GameCanvas({
   const [year, setYear] = useState(2008);
   const gameOverSent = useRef(false);
   const ranked = rankedSeed != null;
+  const phone = isPhone();
 
   const resize = useCallback(() => {
     const canvas = canvasRef.current;
@@ -177,6 +183,19 @@ export default function GameCanvas({
     return () => window.removeEventListener("keydown", onKey);
   }, [doFlap]);
 
+  // Native, non-passive touchstart: React's is passive, so its preventDefault
+  // is ignored and the tap also fires a click, which flapped a second time.
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const onTouch = (e: TouchEvent) => {
+      e.preventDefault();
+      doFlap();
+    };
+    canvas.addEventListener("touchstart", onTouch, { passive: false });
+    return () => canvas.removeEventListener("touchstart", onTouch);
+  }, [doFlap]);
+
   useIsoLayoutEffect(() => {
     resize();
     const ro = new ResizeObserver(() => resize());
@@ -190,10 +209,10 @@ export default function GameCanvas({
 
   return (
     <div
-      className={`relative w-full h-full min-h-[320px] overflow-hidden ${className}`}
+      className={`relative w-full h-full min-h-[320px] max-lg:min-h-0 overflow-hidden ${className}`}
       style={{ isolation: "isolate" }}
     >
-      <YearStage year={year} live={ranked} clip={ranked} />
+      <YearStage year={year} live={ranked && !phone} clip={ranked || phone} />
       <button
         type="button"
         aria-label="Mute music"
@@ -211,10 +230,6 @@ export default function GameCanvas({
         className="relative z-10 h-full w-full bg-transparent cursor-pointer touch-none"
         style={{ transform: "translateZ(0)", contain: "strict", willChange: "transform" }}
         onClick={doFlap}
-        onTouchStart={(e) => {
-          e.preventDefault();
-          doFlap();
-        }}
       />
     </div>
   );
