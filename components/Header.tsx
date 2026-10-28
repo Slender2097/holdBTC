@@ -28,18 +28,18 @@ export default function Header({
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-alien-cyan/35 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 h-px bg-alien-border/80" />
 
-      <div className="relative h-full max-w-5xl mx-auto px-4 flex items-center justify-between gap-4">
-        <a href="/" className="flex items-center gap-3.5 min-w-0">
-          <div className="w-12 h-12 rounded-lg bg-alien-panel border border-alien-cyan/30 flex items-center justify-center shadow-glow">
-            <span className="text-alien-cyan font-bold text-lg tracking-tight">
+      <div className="relative h-full max-w-5xl mx-auto px-4 flex items-center justify-between gap-4 max-lg:px-3 max-lg:gap-2">
+        <a href="/" className="flex items-center gap-3.5 min-w-0 max-lg:gap-2.5">
+          <div className="w-12 h-12 max-lg:w-9 max-lg:h-9 shrink-0 rounded-lg bg-alien-panel border border-alien-cyan/30 flex items-center justify-center shadow-glow">
+            <span className="text-alien-cyan font-bold text-lg tracking-tight max-lg:text-sm">
               HB
             </span>
           </div>
           <div className="min-w-0">
-            <h1 className="font-bold text-2xl tracking-widest leading-none text-white">
+            <h1 className="font-bold text-2xl tracking-widest leading-none text-white max-lg:text-lg">
               HOLD<span className="text-alien-cyan">BTC</span>
             </h1>
-            <p className="text-xs text-alien-muted tracking-[0.22em] uppercase mt-1.5 truncate">
+            <p className="text-xs text-alien-muted tracking-[0.22em] uppercase mt-1.5 truncate max-lg:hidden">
               holdbtc.io
             </p>
           </div>

@@ -25,14 +25,47 @@ body {
   overflow-x: hidden;
 }
 
-body.game-active {
-  overflow: hidden;
-  touch-action: none;
-}
-
 /* Header stays a fixed height so menus never shove the page */
 .site-header {
   height: 6rem;
+}
+
+/* Phone (below lg). Desktop layout is not touched by anything in here. */
+@media not all and (min-width: 1024px) {
+  html,
+  body {
+    overscroll-behavior: none;
+    touch-action: manipulation;
+  }
+
+  /* A run is active: no page scroll, no rubber band, no zoom gestures */
+  body.game-active {
+    overflow: hidden;
+    touch-action: none;
+  }
+
+  .site-header {
+    height: calc(3.5rem + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .phone-shell {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}
+
+/* Phone in landscape: give the short screen to the playfield */
+@media (max-width: 1023.98px) and (max-height: 500px) {
+  .site-header {
+    height: calc(2.75rem + env(safe-area-inset-top));
+  }
+
+  .phone-bar {
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+  }
 }
 
 /* Custom scrollbar */
