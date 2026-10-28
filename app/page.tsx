@@ -112,7 +112,15 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [sheet]);
 
-  const handleRunStart = useCallback(() => setRunActive(true), []);
+  const handleRunStart = useCallback(() => {
+    // Phone: the page may have been scrolled; show the whole board for the run.
+    // body is the scroll container (html and body both set overflow-x).
+    if (window.matchMedia("not all and (min-width: 1024px)").matches) {
+      document.body.scrollTo(0, 0);
+      window.scrollTo(0, 0);
+    }
+    setRunActive(true);
+  }, []);
 
   useEffect(() => {
     if (nostr.isLoggedIn) setRankedWarning(null);
@@ -280,7 +288,7 @@ export default function HomePage() {
   }, [lastScore, lastDistance, nostr, notePublishing, notePublished]);
 
   return (
-    <div className="phone-shell min-h-screen flex flex-col max-lg:h-[100svh] max-lg:min-h-0 max-lg:overflow-hidden">
+    <div className="phone-shell min-h-screen flex flex-col">
       <Header
         user={nostr.user}
         loading={nostr.loading}
@@ -291,7 +299,7 @@ export default function HomePage() {
         onLogout={nostr.logout}
       />
 
-      <main className="flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 max-lg:min-h-0 max-lg:p-0 max-lg:gap-0">
+      <main className="phone-main flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 max-lg:min-h-0 max-lg:p-0 max-lg:gap-0">
         <div className="flex-1 flex flex-col gap-4 min-w-0 max-lg:min-h-0 max-lg:gap-0">
           <div className="phone-bar flex flex-wrap items-center justify-between gap-3 max-lg:flex-nowrap max-lg:gap-2 max-lg:px-3 max-lg:py-1.5 max-lg:border-b max-lg:border-alien-border/60 max-lg:bg-alien-deep/90">
             <PaymentButton
@@ -441,7 +449,7 @@ export default function HomePage() {
         />
       )}
 
-      <footer className="border-t border-alien-border/60 py-4 px-4 max-lg:hidden">
+      <footer className="border-t border-alien-border/60 py-4 px-4">
         <div className="max-w-5xl mx-auto flex items-end justify-between gap-4">
           <a
             href="https://github.com/Slender2097/holdBTC"

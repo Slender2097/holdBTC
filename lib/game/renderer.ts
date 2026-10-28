@@ -156,10 +156,12 @@ export function drawCandlestick(ctx: CanvasRenderingContext2D, c: Candlestick) {
 }
 
 export function drawBird(ctx: CanvasRenderingContext2D, bird: Bird) {
+  // Detail sizes were drawn for an 18px radius; scale them with the coin.
+  const s = bird.radius / 18;
   ctx.save();
   ctx.translate(bird.x, bird.y);
   ctx.rotate(bird.rotation);
-  ctx.lineWidth = 4;
+  ctx.lineWidth = 4 * s;
   ctx.strokeStyle = INK;
   ctx.fillStyle = "#F7931A";
   ctx.beginPath();
@@ -168,13 +170,13 @@ export function drawBird(ctx: CanvasRenderingContext2D, bird: Bird) {
   ctx.stroke();
   ctx.fillStyle = "#ffe08a";
   ctx.beginPath();
-  ctx.ellipse(-5, -6, 5, 3.2, -0.4, 0, Math.PI * 2);
+  ctx.ellipse(-5 * s, -6 * s, 5 * s, 3.2 * s, -0.4, 0, Math.PI * 2);
   ctx.fill();
   ctx.fillStyle = INK;
   ctx.font = `bold ${bird.radius * 1.15}px "Comic Sans MS", system-ui`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("B", 0, 1);
+  ctx.fillText("B", 0, s);
   ctx.restore();
 }
 

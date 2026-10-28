@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   createInitialState,
   flap,
@@ -16,10 +16,10 @@ import { musicMuted, playSfx, startMusic, startRankedMusic, stopMusic, toggleMus
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-// Phone: free play uses the pre-recorded clips too. The scripted iframe runs
-// on the main thread and makes the game lag on a phone.
-const isPhone = () =>
-  typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
+// Phone (coarse pointer). Server render and hydration say false.
+const isPhone = () => window.matchMedia("(pointer: coarse)").matches;
+const noSubscribe = () => () => {};
+const usePhone = () => useSyncExternalStore(noSubscribe, isPhone, () => false);
 
 export type RunLog = {
   score: number;
@@ -58,10 +58,13 @@ export default function GameCanvas({
   const playSizeRef = useRef({ w: 0, h: 0 });
   const startedRef = useRef(false);
   const [ready, setReady] = useState(false);
+  const [running, setRunning] = useState(false);
   const [year, setYear] = useState(2008);
   const gameOverSent = useRef(false);
   const ranked = rankedSeed != null;
-  const phone = isPhone();
+  const phone = usePhone();
+  const phoneRef = useRef(phone);
+  phoneRef.current = phone;
 
   const resize = useCallback(() => {
     const canvas = canvasRef.current;
@@ -73,7 +76,8 @@ export default function GameCanvas({
     if (startedRef.current) return;
 
     const coarse = window.matchMedia("(pointer: coarse)").matches;
-    const dpr = coarse ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
+    // Backing store only; the logical board size (w, h) stays the same.
+    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 2 : 1.5);
     const w = parent.clientWidth;
     const h = parent.clientHeight || Math.min(window.innerHeight * 0.72, 640);
 
@@ -164,6 +168,7 @@ export default function GameCanvas({
     if (stateRef.current.frame === 0 && flapsRef.current.length === 0) {
       onRunStart?.();
     }
+    if (!startedRef.current) setRunning(true);
     startedRef.current = true;
     if (ranked) startRankedMusic();
     else startMusic();
@@ -189,6 +194,9 @@ export default function GameCanvas({
     const canvas = canvasRef.current;
     if (!canvas) return;
     const onTouch = (e: TouchEvent) => {
+      // Phone, before the run: the touch may be a scroll. Leave it to the
+      // browser; only a tap makes a click, and the click starts the run.
+      if (phoneRef.current && !startedRef.current) return;
       e.preventDefault();
       doFlap();
     };
@@ -212,7 +220,7 @@ export default function GameCanvas({
       className={`relative w-full h-full min-h-[320px] max-lg:min-h-0 overflow-hidden ${className}`}
       style={{ isolation: "isolate" }}
     >
-      <YearStage year={year} live={ranked && !phone} clip={ranked || phone} />
+      <YearStage year={year} live={ranked && !phone} clip={ranked} />
       <button
         type="button"
         aria-label="Mute music"
@@ -228,9 +236,25 @@ export default function GameCanvas({
       <canvas
         ref={canvasRef}
         className="relative z-10 h-full w-full bg-transparent cursor-pointer touch-none"
-        style={{ transform: "translateZ(0)", contain: "strict", willChange: "transform" }}
+        style={{
+          transform: "translateZ(0)",
+          contain: "strict",
+          willChange: "transform",
+          // Phone, before the run: vertical swipes scroll the page
+          ...(phone && !running ? { touchAction: "pan-y" } : null),
+        }}
         onClick={doFlap}
       />
+      {phone && !running && (
+        <div
+          className="pointer-events-none absolute inset-x-0 z-20 flex justify-center"
+          style={{ top: "calc(62% + 44px)" }}
+        >
+          <span className="rounded-full border border-alien-cyan/50 bg-alien-void/80 px-5 py-2 text-sm font-semibold tracking-[0.2em] text-alien-cyan shadow-glow">
+            TAP TO START
+          </span>
+        </div>
+      )}
     </div>
   );
 }

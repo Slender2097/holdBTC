@@ -32,21 +32,32 @@ body {
 
 /* Phone (below lg). Desktop layout is not touched by anything in here. */
 @media not all and (min-width: 1024px) {
+  :root {
+    --phone-header: calc(3.5rem + env(safe-area-inset-top));
+  }
+
   html,
   body {
     overscroll-behavior: none;
     touch-action: manipulation;
   }
 
-  /* A run is active: no page scroll, no rubber band, no zoom gestures */
+  /* A run is active: no page scroll, no rubber band, no zoom gestures.
+     Before and after a run the page scrolls. */
   body.game-active {
     overflow: hidden;
     touch-action: none;
   }
 
   .site-header {
-    height: calc(3.5rem + env(safe-area-inset-top));
+    height: var(--phone-header);
     padding-top: env(safe-area-inset-top);
+  }
+
+  /* The first screen is header + bar + board; the footer is below it */
+  .phone-main {
+    flex: none;
+    height: calc(100svh - var(--phone-header) - env(safe-area-inset-bottom));
   }
 
   .phone-shell {
@@ -58,8 +69,8 @@ body {
 
 /* Phone in landscape: give the short screen to the playfield */
 @media (max-width: 1023.98px) and (max-height: 500px) {
-  .site-header {
-    height: calc(2.75rem + env(safe-area-inset-top));
+  :root {
+    --phone-header: calc(2.75rem + env(safe-area-inset-top));
   }
 
   .phone-bar {
