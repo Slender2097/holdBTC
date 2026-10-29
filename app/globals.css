@@ -77,6 +77,15 @@ body {
     padding-top: 0.25rem;
     padding-bottom: 0.25rem;
   }
+
+  /* Big bar buttons, a little shorter so the playfield keeps its height */
+  .phone-bar .phone-cta {
+    height: 2.5rem;
+  }
+
+  .phone-bar .gold-border-btn .phone-cta {
+    height: 2.25rem;
+  }
 }
 
 /* Custom scrollbar */

@@ -17,7 +17,7 @@ export default function PaymentButton({
 }: PaymentButtonProps) {
   if (hasPaid) {
     return (
-      <div className="inline-flex items-center gap-2 px-4 py-2.5 max-lg:px-3 max-lg:py-1.5 max-lg:text-xs whitespace-nowrap rounded-lg bg-alien-green/10 border border-alien-green/40 text-alien-green text-sm font-mono tracking-wide">
+      <div className="phone-cta inline-flex items-center gap-2 px-4 py-2.5 max-lg:flex-1 max-lg:min-w-0 max-lg:h-12 max-lg:justify-center max-lg:px-4 max-lg:py-0 max-lg:text-base max-lg:font-semibold max-[359px]:px-2 max-[359px]:text-[13px] max-[359px]:tracking-normal whitespace-nowrap rounded-lg bg-alien-green/10 border border-alien-green/40 text-alien-green text-sm font-mono tracking-wide">
         <span className="w-1.5 h-1.5 rounded-full bg-alien-green animate-pulse" />
         RANKED READY
       </div>
@@ -28,9 +28,9 @@ export default function PaymentButton({
     <button
       onClick={onPay}
       disabled={paying || disabled}
-      className="gold-border-btn relative inline-flex items-center justify-center rounded-xl p-[2px] disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
+      className="gold-border-btn relative inline-flex items-center justify-center rounded-xl p-[2px] max-lg:flex-1 max-lg:min-w-0 disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.98] transition-transform"
     >
-      <span className="relative z-10 inline-flex items-center justify-center gap-2 rounded-[10px] bg-alien-cyan px-5 py-2.5 max-lg:px-3 max-lg:py-1.5 max-lg:text-xs whitespace-nowrap text-sm font-semibold tracking-wide text-alien-void shadow-glow">
+      <span className="relative z-10 inline-flex items-center justify-center gap-2 rounded-[10px] bg-alien-cyan px-5 py-2.5 phone-cta max-lg:w-full max-lg:h-11 max-lg:px-4 max-lg:py-0 max-lg:text-base max-lg:font-bold max-[359px]:px-2 max-[359px]:text-[13px] max-[359px]:tracking-normal whitespace-nowrap text-sm font-semibold tracking-wide text-alien-void shadow-glow">
         {paying ? (
           <>
             <span className="w-3.5 h-3.5 border-2 border-alien-void/30 border-t-alien-void rounded-full animate-spin" />

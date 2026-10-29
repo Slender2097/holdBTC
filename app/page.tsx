@@ -301,13 +301,13 @@ export default function HomePage() {
 
       <main className="phone-main flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 max-lg:min-h-0 max-lg:p-0 max-lg:gap-0">
         <div className="flex-1 flex flex-col gap-4 min-w-0 max-lg:min-h-0 max-lg:gap-0">
-          <div className="phone-bar flex flex-wrap items-center justify-between gap-3 max-lg:flex-nowrap max-lg:gap-2 max-lg:px-3 max-lg:py-1.5 max-lg:border-b max-lg:border-alien-border/60 max-lg:bg-alien-deep/90">
+          <div className="phone-bar flex flex-wrap items-center justify-between gap-3 max-lg:flex-nowrap max-lg:gap-2 max-lg:px-3 max-lg:py-2 max-lg:border-b max-lg:border-alien-border/60 max-lg:bg-alien-deep/90">
             <PaymentButton
               hasPaid={payment.hasPaid}
               paying={payment.paying || !!payment.invoice}
               onPay={handlePayClick}
             />
-            <div className="flex items-center gap-4 text-xs text-alien-muted font-mono max-lg:gap-2.5 max-lg:text-[10px] max-lg:ml-auto max-lg:shrink-0">
+            <div className="flex items-center gap-4 text-xs text-alien-muted font-mono max-lg:gap-2 max-lg:text-[10px] max-lg:ml-auto max-lg:shrink-0">
               <span className="max-sm:hidden">
                 GAMES <span className="text-white/80">{payment.gamesPlayed}</span>
               </span>
@@ -315,7 +315,7 @@ export default function HomePage() {
                 LOCAL SATS <span className="text-alien-cyan">{payment.totalPaidSats}</span>
               </span>
               {personalBest > 0 && (
-                <span>
+                <span className="max-lg:hidden">
                   BEST <span className="text-alien-green">{personalBest}</span>
                 </span>
               )}
@@ -323,15 +323,20 @@ export default function HomePage() {
                 type="button"
                 onClick={() => setSheet("board")}
                 aria-label="Open leaderboard"
-                className="lg:hidden h-8 px-2.5 rounded-md border border-alien-border bg-alien-panel text-[10px] tracking-[0.14em] text-alien-cyan"
+                className="phone-cta lg:hidden h-12 min-w-[4.5rem] px-3 max-[359px]:min-w-0 max-[359px]:px-2.5 rounded-xl border-2 border-alien-cyan bg-alien-cyan/20 text-white font-bold active:bg-alien-cyan/35 flex flex-col items-center justify-center leading-none shadow-[0_0_12px_rgba(0,240,255,0.35)]"
               >
-                RANK
+                <span className="text-sm tracking-[0.18em] max-[359px]:text-xs max-[359px]:tracking-[0.12em]">RANK</span>
+                {personalBest > 0 && (
+                  <span className="mt-1 text-[10px] font-medium tracking-normal text-alien-green max-[359px]:text-[9px]">
+                    BEST {personalBest}
+                  </span>
+                )}
               </button>
               <button
                 type="button"
                 onClick={() => setSheet("protocol")}
                 aria-label="How it works"
-                className="lg:hidden h-8 w-8 rounded-md border border-alien-border bg-alien-panel text-xs text-white/80"
+                className="phone-cta lg:hidden h-12 w-11 max-[359px]:w-10 rounded-xl border-2 border-alien-border bg-alien-panel text-base font-bold text-white active:bg-white/10"
               >
                 ?
               </button>
