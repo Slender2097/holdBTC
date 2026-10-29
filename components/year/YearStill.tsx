@@ -47,10 +47,10 @@ function release(img: HTMLImageElement) {
 }
 
 /**
- * Phone free play: the year scene as one still image (scripts/record-year-stills.mjs),
- * so no iframe runs next to the game loop. Same scene as the desktop free-play
- * still. The previous image stays painted until the next one has decoded, so a
- * year change or a restart never shows the empty layer.
+ * Free play (every device), and ranked when the clip can't play: the year
+ * scene as one still image (scripts/record-year-stills.mjs), so no iframe runs
+ * next to the game loop. The previous image stays painted until the next one
+ * has decoded, so a year change or a restart never shows the empty layer.
  */
 export default function YearStill({ year }: { year: number }) {
   const hostRef = useRef<HTMLDivElement>(null);
