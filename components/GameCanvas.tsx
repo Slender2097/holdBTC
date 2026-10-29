@@ -63,8 +63,7 @@ export default function GameCanvas({
   const [year, setYear] = useState(2008);
   const gameOverSent = useRef(false);
   const ranked = rankedSeed != null;
-  const phoneOrNull = usePhone();
-  const phone = phoneOrNull === true;
+  const phone = usePhone() === true;
   const phoneRef = useRef(phone);
   phoneRef.current = phone;
 
@@ -223,13 +222,12 @@ export default function GameCanvas({
       className={`relative w-full h-full min-h-[320px] max-lg:min-h-0 overflow-hidden ${className}`}
       style={{ isolation: "isolate" }}
     >
-      {phoneOrNull === null ? null : phone && !ranked ? (
-        // Phone free play: one still image per year, no iframe and no clip.
-        // Nothing until hydration knows the device, so a phone never starts
-        // loading the iframe scene.
-        <YearStill year={year} />
+      {ranked ? (
+        // Ranked: the pre-recorded year clips.
+        <YearStage year={year} clip />
       ) : (
-        <YearStage year={year} live={ranked && !phone} clip={ranked} />
+        // Free play, every device: one still image per year. No iframe, no clip.
+        <YearStill year={year} />
       )}
       <button
         type="button"
