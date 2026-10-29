@@ -77,9 +77,10 @@ export default function GameCanvas({
     // state or follow a chrome-hide resize after that.
     if (startedRef.current) return;
 
-    const coarse = window.matchMedia("(pointer: coarse)").matches;
     // Backing store only; the logical board size (w, h) stays the same.
-    const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 2 : 1.5);
+    // Phone and desktop share the 1.5 cap: a 2x backing store on phone
+    // dropped free play to 42-53 fps.
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const w = parent.clientWidth;
     const h = parent.clientHeight || Math.min(window.innerHeight * 0.72, 640);
 
