@@ -81,6 +81,15 @@ export default function PaymentButton({
         .gold-border-btn:active:not(:disabled) {
           box-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
         }
+        /* Phone (below lg or coarse pointer), free-play run active: hold the
+           spin. It was the remaining frame-gap source on phone. A ranked run
+           shows RANKED READY instead, so this only reaches free play.
+           body.game-active is set by app/page.tsx for the length of a run. */
+        @media not all and (min-width: 1024px), (pointer: coarse) {
+          :global(body.game-active) .gold-border-btn::before {
+            animation: none;
+          }
+        }
         @keyframes gold-line-spin {
           to {
             transform: rotate(360deg);
