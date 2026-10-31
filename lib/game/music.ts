@@ -50,12 +50,26 @@ export function stopMusic() {
   }
 }
 
+function makeContext() {
+  const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (AudioCtx && !ctx) ctx = new AudioCtx();
+  return ctx;
+}
+
+/**
+ * Create the free-play AudioContext ahead of the first flap (about 25 ms on a
+ * phone), so the tap that starts the run does not pay for it. It starts
+ * suspended; startMusic resumes it inside the tap.
+ */
+export function warmMusic() {
+  if (!muted) makeContext();
+}
+
 export function startMusic() {
   if (muted) return;
-  const AudioCtx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-  if (!AudioCtx) return;
-  if (!ctx) ctx = new AudioCtx();
-  if (ctx.state === "suspended") void ctx.resume();
+  const ac = makeContext();
+  if (!ac) return;
+  if (ac.state === "suspended") void ac.resume();
   if (!timer) timer = window.setInterval(loop, 220);
 }
 
