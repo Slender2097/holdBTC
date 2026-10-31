@@ -13,7 +13,15 @@ import { renderFrame, resetFrameDamage } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
 import YearStage from "@/components/year/YearStage";
 import YearStill from "@/components/year/YearStill";
-import { musicMuted, playSfx, startMusic, startRankedMusic, stopMusic, toggleMusic } from "@/lib/game/music";
+import {
+  musicMuted,
+  playSfx,
+  startMusic,
+  startRankedMusic,
+  stopMusic,
+  toggleMusic,
+  warmMusic,
+} from "@/lib/game/music";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
@@ -21,6 +29,14 @@ const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : use
 const isPhone = () => window.matchMedia("(pointer: coarse)").matches;
 const noSubscribe = () => () => {};
 const usePhone = () => useSyncExternalStore<boolean | null>(noSubscribe, isPhone, () => null);
+
+// Phone, before the run: a finger that moves this far (CSS px) is a scroll,
+// not a tap. One held still this long is a tap even before it lifts.
+const TAP_SLOP = 10;
+const TAP_HOLD_MS = 250;
+
+// The touch that started the run on finger-down, until it is known to be a tap.
+type StartTouch = { id: number; x: number; y: number; timer: number; tap: boolean };
 
 export type RunLog = {
   score: number;
@@ -66,6 +82,9 @@ export default function GameCanvas({
   const phone = usePhone() === true;
   const phoneRef = useRef(phone);
   phoneRef.current = phone;
+  const startTouchRef = useRef<StartTouch | null>(null);
+  // Time of the last phone touch handled here; the click it makes is dropped.
+  const touchAtRef = useRef(-Infinity);
 
   const resize = useCallback(() => {
     const canvas = canvasRef.current;
@@ -164,20 +183,49 @@ export default function GameCanvas({
     return () => cancelAnimationFrame(rafRef.current);
   }, [enabled, ready, onGameOver, onScoreChange, ranked]);
 
-  const doFlap = useCallback(() => {
+  // provisional: the phone start on finger-down. The flap and the run start
+  // at once; the page, music and sound wait until the touch is a tap.
+  const doFlap = useCallback((provisional = false) => {
     if (!enabled || !stateRef.current) return;
     if (stateRef.current.isGameOver) return;
-    if (stateRef.current.frame === 0 && flapsRef.current.length === 0) {
+    if (!provisional && stateRef.current.frame === 0 && flapsRef.current.length === 0) {
       onRunStart?.();
     }
     if (!startedRef.current) setRunning(true);
     startedRef.current = true;
-    if (ranked) startRankedMusic();
-    else startMusic();
-    playSfx("flap");
+    if (!provisional) {
+      if (ranked) startRankedMusic();
+      else startMusic();
+      playSfx("flap");
+    }
     flapsRef.current.push(stateRef.current.frame);
     stateRef.current = flap(stateRef.current);
   }, [enabled, onRunStart, ranked]);
+
+  // Phone: the finger-down start is a tap. Start the page side of the run.
+  const confirmStart = useCallback(() => {
+    const t = startTouchRef.current;
+    if (!t || t.tap) return;
+    t.tap = true;
+    window.clearTimeout(t.timer);
+    onRunStart?.();
+    if (ranked) startRankedMusic();
+    else startMusic();
+    playSfx("flap");
+  }, [onRunStart, ranked]);
+
+  // Phone: the finger-down start was a scroll. Put the board back as it was
+  // before the touch: a fresh state, same as a new mount, so a ranked run
+  // still starts from frame 0 with the seed's first number.
+  const cancelStart = useCallback(() => {
+    const t = startTouchRef.current;
+    if (!t) return;
+    window.clearTimeout(t.timer);
+    startTouchRef.current = null;
+    startedRef.current = false;
+    setRunning(false);
+    resize();
+  }, [resize]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -195,16 +243,97 @@ export default function GameCanvas({
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
+    const find = (list: TouchList, id: number) => {
+      for (let i = 0; i < list.length; i++) if (list[i].identifier === id) return list[i];
+      return null;
+    };
     const onTouch = (e: TouchEvent) => {
-      // Phone, before the run: the touch may be a scroll. Leave it to the
-      // browser; only a tap makes a click, and the click starts the run.
-      if (phoneRef.current && !startedRef.current) return;
+      if (phoneRef.current && !startedRef.current) {
+        // Phone, before the run: start on finger-down, without preventDefault
+        // so the touch can still become a scroll (touch-action: pan-y). A move
+        // past TAP_SLOP undoes the start; lifting or holding still keeps it.
+        const touch = e.changedTouches[0];
+        if (!touch || startTouchRef.current) return;
+        touchAtRef.current = performance.now();
+        doFlap(true);
+        if (!startedRef.current) return;
+        startTouchRef.current = {
+          id: touch.identifier,
+          x: touch.clientX,
+          y: touch.clientY,
+          tap: false,
+          timer: window.setTimeout(confirmStart, TAP_HOLD_MS),
+        };
+        return;
+      }
+      // A second finger while the start touch is still undecided: it is a tap.
+      confirmStart();
       e.preventDefault();
       doFlap();
     };
+    const onMove = (e: TouchEvent) => {
+      const t = startTouchRef.current;
+      const touch = t && find(e.changedTouches, t.id);
+      if (!t || !touch) return;
+      if (t.tap) {
+        // The run is on: keep the page still under it.
+        if (e.cancelable) e.preventDefault();
+        return;
+      }
+      if (Math.hypot(touch.clientX - t.x, touch.clientY - t.y) > TAP_SLOP) cancelStart();
+    };
+    const onEnd = (e: TouchEvent) => {
+      const t = startTouchRef.current;
+      if (!t || !find(e.changedTouches, t.id)) return;
+      touchAtRef.current = performance.now();
+      // No click: the run already started on finger-down.
+      if (e.cancelable) e.preventDefault();
+      if (!t.tap) confirmStart();
+      // Lifting a finger is a user gesture; the hold timer was not, so the
+      // music may still be waiting for one.
+      else if (ranked) startRankedMusic();
+      else startMusic();
+      startTouchRef.current = null;
+    };
+    const onCancel = (e: TouchEvent) => {
+      const t = startTouchRef.current;
+      if (!t || !find(e.changedTouches, t.id)) return;
+      if (t.tap) startTouchRef.current = null;
+      else cancelStart();
+    };
     canvas.addEventListener("touchstart", onTouch, { passive: false });
-    return () => canvas.removeEventListener("touchstart", onTouch);
-  }, [doFlap]);
+    canvas.addEventListener("touchmove", onMove, { passive: false });
+    canvas.addEventListener("touchend", onEnd, { passive: false });
+    canvas.addEventListener("touchcancel", onCancel);
+    return () => {
+      canvas.removeEventListener("touchstart", onTouch);
+      canvas.removeEventListener("touchmove", onMove);
+      canvas.removeEventListener("touchend", onEnd);
+      canvas.removeEventListener("touchcancel", onCancel);
+    };
+  }, [doFlap, confirmStart, cancelStart, ranked]);
+
+  useEffect(() => {
+    const t = startTouchRef;
+    return () => {
+      if (t.current) window.clearTimeout(t.current.timer);
+    };
+  }, []);
+
+  // Phone free play: make the AudioContext while idle, not in the start tap.
+  useEffect(() => {
+    if (!phone || ranked) return;
+    const w = window as typeof window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (w.requestIdleCallback) {
+      const id = w.requestIdleCallback(warmMusic, { timeout: 2000 });
+      return () => w.cancelIdleCallback?.(id);
+    }
+    const id = window.setTimeout(warmMusic, 500);
+    return () => window.clearTimeout(id);
+  }, [phone, ranked]);
 
   useIsoLayoutEffect(() => {
     resize();
@@ -251,7 +380,11 @@ export default function GameCanvas({
           // Phone, before the run: vertical swipes scroll the page
           ...(phone && !running ? { touchAction: "pan-y" } : null),
         }}
-        onClick={doFlap}
+        onClick={() => {
+          // Phone: the touch already started or flapped; this is its click.
+          if (performance.now() - touchAtRef.current < 800) return;
+          doFlap();
+        }}
       />
       {phone && !running && (
         <div

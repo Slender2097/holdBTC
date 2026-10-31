@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import PaymentButton from "@/components/PaymentButton";
 import PaymentModal from "@/components/PaymentModal";
 import GameOverModal from "@/components/GameOverModal";
+import { preloadStartClip } from "@/components/year/YearStage";
 import { useNostr } from "@/hooks/useNostr";
 import { usePayment } from "@/hooks/usePayment";
 
@@ -111,6 +112,13 @@ export default function HomePage() {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [sheet]);
+
+  // Pay modal open: start loading the first ranked clip so its first frame is
+  // ready when the paid run mounts.
+  const invoiceOpen = payment.invoice != null && !payment.hasPaid;
+  useEffect(() => {
+    if (invoiceOpen) preloadStartClip();
+  }, [invoiceOpen]);
 
   const handleRunStart = useCallback(() => {
     // Phone: the page may have been scrolled; show the whole board for the run.
