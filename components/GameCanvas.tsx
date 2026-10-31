@@ -13,6 +13,7 @@ import { renderFrame, resetFrameDamage } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
 import YearStage from "@/components/year/YearStage";
 import YearStill from "@/components/year/YearStill";
+import { isPhone } from "@/lib/device";
 import {
   musicMuted,
   playSfx,
@@ -25,12 +26,7 @@ import {
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-// Phone: a coarse pointer, or a touch screen below the lg breakpoint (some
-// Android browsers report a fine pointer). null during server render and
-// hydration.
-const isPhone = () =>
-  window.matchMedia("(pointer: coarse)").matches ||
-  (navigator.maxTouchPoints > 0 && window.matchMedia("(max-width: 1023px)").matches);
+// Phone (lib/device.ts). null during server render and hydration.
 const noSubscribe = () => () => {};
 const usePhone = () => useSyncExternalStore<boolean | null>(noSubscribe, isPhone, () => null);
 
@@ -48,6 +44,19 @@ const TAP_HOLD_MS = 250;
 // paints the whole board black over the year still (iOS ignores the hint).
 function getCtx(canvas: HTMLCanvasElement) {
   return canvas.getContext("2d", { alpha: true, desynchronized: !isPhone() });
+}
+
+// Phone free play: the fixed step for one frame, from the median of the last
+// GAP_SAMPLES frame gaps. A hitch is one long gap and does not move the
+// median; a phone that really runs at 30 Hz (power saving) moves it within
+// a few frames. Clamped like the desktop step.
+const GAP_SAMPLES = 15;
+function frameStep(gaps: number[], elapsed: number): number {
+  gaps.push(elapsed);
+  if (gaps.length > GAP_SAMPLES) gaps.shift();
+  const sorted = gaps.slice().sort((a, b) => a - b);
+  const median = sorted[sorted.length >> 1];
+  return Math.min(Math.max(median / 16.666, 0.5), 2.5);
 }
 
 // The touch that started the run on finger-down, until it is known to be a tap.
@@ -98,6 +107,8 @@ export default function GameCanvas({
   const phoneRef = useRef(phone);
   phoneRef.current = phone;
   const startTouchRef = useRef<StartTouch | null>(null);
+  // Phone free play: recent frame gaps (ms), for the per-frame step.
+  const gapsRef = useRef<number[]>([]);
   // Time of the last phone touch handled here; the click it makes is dropped.
   const touchAtRef = useRef(-Infinity);
 
@@ -110,10 +121,11 @@ export default function GameCanvas({
     // state or follow a chrome-hide resize after that.
     if (startedRef.current) return;
 
-    // Backing store only; the logical board size (w, h) stays the same.
-    // Phone and desktop share the 1.5 cap: a 2x backing store on phone
-    // dropped free play to 42-53 fps.
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    // Backing store only; the logical board size (w, h), the ranked step and
+    // the replay width/height stay the same. Desktop caps at 1.5x. Phone draws
+    // at 1x, free play and ranked: a 390 px board is a 390 px backing store,
+    // not 585 or 780, so each frame fills a third to a quarter of the pixels.
+    const dpr = isPhone() ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
     const w = parent.clientWidth;
     const h = parent.clientHeight || Math.min(window.innerHeight * 0.72, 640);
 
@@ -170,11 +182,16 @@ export default function GameCanvas({
         }
         renderFrame(ctx, next, viewW, viewH);
       } else {
-        const dt = Math.min(
-          Math.max(lastTimeRef.current ? (time - lastTimeRef.current) / 16.666 : 1, 0.5),
-          2.5
-        );
+        const elapsed = lastTimeRef.current ? time - lastTimeRef.current : 16.666;
         lastTimeRef.current = time;
+        // Desktop: step by the time since the last frame. Phone: one step per
+        // frame, like ranked, so a dropped frame is a short pause and the coin
+        // never jumps. The step is sized to the screen's refresh (median of
+        // recent frame gaps; one slow frame does not move it), so a 90 or
+        // 120 Hz phone runs at the same speed as a 60 Hz one.
+        const dt = phoneRef.current
+          ? frameStep(gapsRef.current, elapsed)
+          : Math.min(Math.max(elapsed / 16.666, 0.5), 2.5);
         const prev = stateRef.current;
         const next = updateGame(prev, dt, viewW, viewH, Math.random);
         stateRef.current = next;
