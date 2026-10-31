@@ -10,6 +10,18 @@ function stillUrl(year: number): string {
   return `/years/stills/${year}-${portrait ? "p" : "l"}.webp`;
 }
 
+// Average colour of each year's still (public/years/stills), painted under the
+// image so a still that is slow or fails to load shows the year's tone, never
+// the dark page behind the board.
+const STILL_COLORS: Record<number, string> = {
+  2008: "#e8e5c5", 2009: "#dbdaa5", 2010: "#eddebd", 2011: "#d5b9c6",
+  2012: "#d7bbc8", 2013: "#d7bbc8", 2014: "#d7bbc8", 2015: "#f0e7c1",
+  2016: "#e8e2bf", 2017: "#efe8c5", 2018: "#dfedf6", 2019: "#e7e5c4",
+  2020: "#f0e8c5", 2021: "#c9d2c4", 2022: "#e9c0ad", 2023: "#d4d0c1",
+  2024: "#e4debd", 2025: "#d7bbc8", 2026: "#e2dfc1",
+};
+const FALLBACK_COLOR = "#f6eccd";
+
 const layer = {
   position: "absolute",
   inset: 0,
@@ -85,11 +97,21 @@ export default function YearStill({ year }: { year: number }) {
       img.style.opacity = again ? "1" : "0";
       host.appendChild(img);
     }
+    // decode() can reject for an image that is fine (Android Chrome does when
+    // a decode is interrupted), so a rejection falls back to the load event.
+    const onLoad = () => {
+      if (img.naturalWidth > 0) reveal();
+    };
     if (again) reveal();
-    else img.decode().then(reveal, () => {});
+    else
+      img.decode().then(reveal, () => {
+        if (img.complete) onLoad();
+        else img.addEventListener("load", onLoad, { once: true });
+      });
 
     return () => {
       done = true;
+      img.removeEventListener("load", onLoad);
       // Never revealed: the next image takes over, prev stays as the fallback.
       if (shownImage !== img) img.remove();
     };
@@ -102,5 +124,11 @@ export default function YearStill({ year }: { year: number }) {
     };
   }, []);
 
-  return <div ref={hostRef} aria-hidden style={{ ...layer, background: "#f6eccd" }} />;
+  return (
+    <div
+      ref={hostRef}
+      aria-hidden
+      style={{ ...layer, background: STILL_COLORS[year] ?? FALLBACK_COLOR }}
+    />
+  );
 }

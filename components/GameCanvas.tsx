@@ -25,15 +25,30 @@ import {
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
 
-// Phone (coarse pointer). null during server render and hydration.
-const isPhone = () => window.matchMedia("(pointer: coarse)").matches;
+// Phone: a coarse pointer, or a touch screen below the lg breakpoint (some
+// Android browsers report a fine pointer). null during server render and
+// hydration.
+const isPhone = () =>
+  window.matchMedia("(pointer: coarse)").matches ||
+  (navigator.maxTouchPoints > 0 && window.matchMedia("(max-width: 1023px)").matches);
 const noSubscribe = () => () => {};
 const usePhone = () => useSyncExternalStore<boolean | null>(noSubscribe, isPhone, () => null);
 
-// Phone, before the run: a finger that moves this far (CSS px) is a scroll,
-// not a tap. One held still this long is a tap even before it lifts.
-const TAP_SLOP = 10;
+// Phone, before the run: a finger that moves mostly up or down by more than
+// SWIPE_SLOP (CSS px) is a scroll, not a tap. Chrome holds back touchmoves
+// inside its own slop, so the first one a tap with a little finger roll
+// reports is already 15-20 px out; the old 10 px limit undid real taps on
+// Android. Sideways moves never scroll (touch-action: pan-y), so they never
+// undo the start. One held still TAP_HOLD_MS is a tap even before it lifts.
+const SWIPE_SLOP = 28;
 const TAP_HOLD_MS = 250;
+
+// Desktop keeps the low-latency canvas. On phones it is off: Android Chrome
+// can put a desynchronized canvas on an overlay that ignores alpha, which
+// paints the whole board black over the year still (iOS ignores the hint).
+function getCtx(canvas: HTMLCanvasElement) {
+  return canvas.getContext("2d", { alpha: true, desynchronized: !isPhone() });
+}
 
 // The touch that started the run on finger-down, until it is known to be a tap.
 type StartTouch = { id: number; x: number; y: number; timer: number; tap: boolean };
@@ -107,7 +122,7 @@ export default function GameCanvas({
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
 
-    const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
+    const ctx = getCtx(canvas);
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
     rngRef.current = ranked ? mulberry32(rankedSeed >>> 0) : null;
@@ -122,7 +137,7 @@ export default function GameCanvas({
     if (!enabled || !ready) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d", { alpha: true, desynchronized: true });
+    const ctx = getCtx(canvas);
     if (!ctx) return;
 
     const loop = (time: number) => {
@@ -251,7 +266,7 @@ export default function GameCanvas({
       if (phoneRef.current && !startedRef.current) {
         // Phone, before the run: start on finger-down, without preventDefault
         // so the touch can still become a scroll (touch-action: pan-y). A move
-        // past TAP_SLOP undoes the start; lifting or holding still keeps it.
+        // past SWIPE_SLOP undoes the start; lifting or holding still keeps it.
         const touch = e.changedTouches[0];
         if (!touch || startTouchRef.current) return;
         touchAtRef.current = performance.now();
@@ -280,7 +295,9 @@ export default function GameCanvas({
         if (e.cancelable) e.preventDefault();
         return;
       }
-      if (Math.hypot(touch.clientX - t.x, touch.clientY - t.y) > TAP_SLOP) cancelStart();
+      const dx = Math.abs(touch.clientX - t.x);
+      const dy = Math.abs(touch.clientY - t.y);
+      if (dy > SWIPE_SLOP && dy > dx) cancelStart();
     };
     const onEnd = (e: TouchEvent) => {
       const t = startTouchRef.current;
@@ -382,7 +399,9 @@ export default function GameCanvas({
         }}
         onClick={() => {
           // Phone: the touch already started or flapped; this is its click.
-          if (performance.now() - touchAtRef.current < 800) return;
+          // If the start was undone but the browser still saw a tap (it sent
+          // this click), the click starts the run instead of being dropped.
+          if (startedRef.current && performance.now() - touchAtRef.current < 800) return;
           doFlap();
         }}
       />
