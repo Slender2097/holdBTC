@@ -2,13 +2,18 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import YearStill from "@/components/year/YearStill";
+import { isPhone } from "@/lib/device";
 
 const START_YEAR = 2008;
 const inRange = (y: number) => y >= START_YEAR && y <= 2026;
 
+// Phone plays the phone rendition (scripts/make-phone-clips.mjs: 540 px long
+// side, 24 fps, low bitrate) so it never decodes a 1080p file next to the
+// game loop. Desktop keeps the full clips.
 function clipUrl(year: number): string {
   const portrait = window.matchMedia("(orientation: portrait)").matches;
-  return `/years/clips/${year}-${portrait ? "p" : "l"}.mp4`;
+  const dir = isPhone() ? "/years/clips/phone" : "/years/clips";
+  return `${dir}/${year}-${portrait ? "p" : "l"}.mp4`;
 }
 
 const layer = {

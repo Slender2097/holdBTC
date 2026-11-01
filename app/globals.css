@@ -30,6 +30,16 @@ body {
   height: 6rem;
 }
 
+/* Phone (below lg or coarse pointer), a run is active: nothing else animates
+   next to the board. Ranked shows RANKED READY with a pulsing dot in the bar
+   above the board; hold it for the run (the gold pay-button spin is held the
+   same way in components/PaymentButton.tsx). */
+@media not all and (min-width: 1024px), (pointer: coarse) {
+  body.game-active .phone-bar .animate-pulse {
+    animation: none;
+  }
+}
+
 /* Phone (below lg). Desktop layout is not touched by anything in here. */
 @media not all and (min-width: 1024px) {
   :root {
