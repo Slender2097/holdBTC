@@ -22,6 +22,7 @@ import {
   stopMusic,
   toggleMusic,
   warmMusic,
+  warmRankedMusic,
 } from "@/lib/game/music";
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -62,6 +63,47 @@ function frameStep(gaps: number[], elapsed: number): number {
   const median = sorted[sorted.length >> 1];
   return Math.min(Math.max(median / 16.666, 0.5), 2.5);
 }
+
+// Phone ranked: the same frame-rate measure, as fixed RANKED_DT ticks per
+// frame, so the live run is the run the server replays. Near-whole rates
+// (60, 30, 120 Hz) snap, so a 60 Hz phone takes exactly one tick per frame.
+const MAX_TICKS_PER_FRAME = 3;
+function tickRate(gaps: number[], elapsed: number): number {
+  const r = frameStep(gaps, elapsed);
+  const half = Math.round(r * 2) / 2;
+  return Math.abs(r - half) < 0.04 ? half : r;
+}
+
+// Phone ranked between ticks (a 90 or 120 Hz screen): draw the coin and the
+// candles part way from the last tick to the next. Drawing only; the state
+// the run plays and submits is the tick state.
+function between(a: GameState, b: GameState, t: number): GameState {
+  if (t >= 0.999 || b.isGameOver) return b;
+  const mix = (x: number, y: number) => x + (y - x) * t;
+  const prev = a.candlesticks;
+  return {
+    ...b,
+    distance: mix(a.distance, b.distance),
+    bird: { ...b.bird, y: mix(a.bird.y, b.bird.y), rotation: mix(a.bird.rotation, b.bird.rotation) },
+    candlesticks: b.candlesticks.map((c) => {
+      for (let i = 0; i < prev.length; i++) {
+        if (prev[i].id === c.id) return { ...c, x: mix(prev[i].x, c.x) };
+      }
+      return c;
+    }),
+  };
+}
+
+// Run fn after the next frame has painted.
+function afterPaint(fn: () => void) {
+  requestAnimationFrame(() => window.setTimeout(fn, 0));
+}
+
+// Phone ranked: the start tap only flaps. Music and the flap sound start this
+// long after the finger lifts, once the first frames of the run are on
+// screen. A timer set inside the touchend still counts as that tap for
+// autoplay (iOS forwards the gesture to timers under 1 s).
+const START_AUDIO_DELAY_MS = 32;
 
 // The touch that started the run on finger-down, until it is known to be a tap.
 type StartTouch = { id: number; x: number; y: number; timer: number; tap: boolean };
@@ -114,6 +156,10 @@ export default function GameCanvas({
   const startTouchRef = useRef<StartTouch | null>(null);
   // Phone free play: recent frame gaps (ms), for the per-frame step.
   const gapsRef = useRef<number[]>([]);
+  // Phone ranked: run time in ticks (fractional), and the tick state before
+  // the current one, for drawing between ticks.
+  const clockRef = useRef(0);
+  const tickPrevRef = useRef<GameState | null>(null);
   // Time of the last phone touch handled here; the click it makes is dropped.
   const touchAtRef = useRef(-Infinity);
 
@@ -145,6 +191,8 @@ export default function GameCanvas({
 
     rngRef.current = ranked ? mulberry32(rankedSeed >>> 0) : null;
     flapsRef.current = [];
+    clockRef.current = 0;
+    tickPrevRef.current = null;
     playSizeRef.current = { w, h };
     resetFrameDamage();
     stateRef.current = createInitialState(w, h, highScore, rngRef.current || undefined);
@@ -164,13 +212,44 @@ export default function GameCanvas({
       const viewH = playSizeRef.current.h || canvas.height;
 
       if (ranked) {
-        // One step per frame. A catch-up loop makes a slow frame slower
-        // and desyncs the live run from the server replay.
-        lastTimeRef.current = time;
         const prev = stateRef.current;
         const pw = playSizeRef.current.w || viewW;
         const ph = playSizeRef.current.h || viewH;
-        const next = updateGame(prev, RANKED_DT, pw, ph, rngRef.current || Math.random);
+        const rng = rngRef.current || Math.random;
+        let next = prev;
+        let view = prev;
+        if (phoneRef.current) {
+          // Phone: ticks of RANKED_DT (the replay's step, unchanged), as many
+          // per frame as the screen's refresh calls for (median of recent
+          // frame gaps): 1 at 60 Hz, 2 at 30 Hz, every other frame at
+          // 120 Hz. The run moves at the same speed on every phone, and the
+          // flap log still names the tick each flap landed on, so the
+          // server replay matches. A slow frame adds no ticks of its own:
+          // it is a short pause, never a jump.
+          const elapsed = lastTimeRef.current ? time - lastTimeRef.current : 16.666;
+          lastTimeRef.current = time;
+          const rate = tickRate(gapsRef.current, elapsed);
+          if (prev.isPlaying && !prev.isGameOver) {
+            clockRef.current += rate;
+            const due = Math.ceil(clockRef.current - 1e-6);
+            let n = 0;
+            while (next.frame < due && n < MAX_TICKS_PER_FRAME && !next.isGameOver) {
+              tickPrevRef.current = next;
+              next = updateGame(next, RANKED_DT, pw, ph, rng);
+              n++;
+            }
+            // Never owe ticks: a capped frame is a pause too.
+            if (clockRef.current > next.frame) clockRef.current = next.frame;
+            const t = 1 - (next.frame - clockRef.current);
+            view = tickPrevRef.current ? between(tickPrevRef.current, next, t) : next;
+          }
+        } else {
+          // Desktop: one step per frame. A catch-up loop makes a slow frame
+          // slower and desyncs the live run from the server replay.
+          lastTimeRef.current = time;
+          next = updateGame(prev, RANKED_DT, pw, ph, rng);
+          view = next;
+        }
         stateRef.current = next;
         if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
         if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
@@ -186,7 +265,7 @@ export default function GameCanvas({
             height: ph,
           });
         }
-        renderFrame(ctx, next, viewW, viewH);
+        renderFrame(ctx, view, viewW, viewH);
       } else {
         const elapsed = lastTimeRef.current ? time - lastTimeRef.current : 16.666;
         lastTimeRef.current = time;
@@ -229,7 +308,15 @@ export default function GameCanvas({
     if (!provisional && stateRef.current.frame === 0 && flapsRef.current.length === 0) {
       onRunStart?.();
     }
-    if (!startedRef.current) setRunning(true);
+    if (!startedRef.current) {
+      // Phone: the finger-down flap touches only the game state. The React
+      // render (hide TAP TO START, canvas touch-action) waits for the paint.
+      if (provisional) {
+        afterPaint(() => {
+          if (startedRef.current) setRunning(true);
+        });
+      } else setRunning(true);
+    }
     startedRef.current = true;
     if (!provisional) {
       if (ranked) startRankedMusic();
@@ -240,17 +327,33 @@ export default function GameCanvas({
     stateRef.current = flap(stateRef.current);
   }, [enabled, onRunStart, ranked]);
 
-  // Phone: the finger-down start is a tap. Start the page side of the run.
+  // Phone ranked: music (and the start tap's flap sound) a moment after the
+  // finger lifts, not inside the start tap.
+  const startRankedAudioSoon = useCallback((withFlapSound: boolean) => {
+    window.setTimeout(() => {
+      if (!startedRef.current || stateRef.current?.isGameOver) return;
+      startRankedMusic();
+      if (withFlapSound) playSfx("flap");
+    }, START_AUDIO_DELAY_MS);
+  }, []);
+
+  // Phone: the finger-down start is a tap. Start the page side of the run
+  // (scroll lock, and scroll to the board if the page moved) after the next
+  // paint, so the first frames of the run are not held up by page work.
   const confirmStart = useCallback(() => {
     const t = startTouchRef.current;
     if (!t || t.tap) return;
     t.tap = true;
     window.clearTimeout(t.timer);
-    onRunStart?.();
-    if (ranked) startRankedMusic();
-    else startMusic();
-    playSfx("flap");
-  }, [onRunStart, ranked]);
+    afterPaint(() => {
+      if (startedRef.current) onRunStart?.();
+    });
+    if (ranked) startRankedAudioSoon(true);
+    else {
+      startMusic();
+      playSfx("flap");
+    }
+  }, [onRunStart, ranked, startRankedAudioSoon]);
 
   // Phone: the finger-down start was a scroll. Put the board back as it was
   // before the touch: a fresh state, same as a new mount, so a ranked run
@@ -331,7 +434,7 @@ export default function GameCanvas({
       if (!t.tap) confirmStart();
       // Lifting a finger is a user gesture; the hold timer was not, so the
       // music may still be waiting for one.
-      else if (ranked) startRankedMusic();
+      else if (ranked) startRankedAudioSoon(false);
       else startMusic();
       startTouchRef.current = null;
     };
@@ -351,7 +454,7 @@ export default function GameCanvas({
       canvas.removeEventListener("touchend", onEnd);
       canvas.removeEventListener("touchcancel", onCancel);
     };
-  }, [doFlap, confirmStart, cancelStart, ranked]);
+  }, [doFlap, confirmStart, cancelStart, ranked, startRankedAudioSoon]);
 
   useEffect(() => {
     const t = startTouchRef;
@@ -360,18 +463,21 @@ export default function GameCanvas({
     };
   }, []);
 
-  // Phone free play: make the AudioContext while idle, not in the start tap.
+  // Phone: get the run's audio ready while idle, not in the start tap. Free
+  // play: the AudioContext and the flap sound. Ranked: ranked.mp3 and the
+  // flap sound (the pay modal usually started these already).
   useEffect(() => {
-    if (!phone || ranked) return;
+    if (!phone) return;
+    const warm = ranked ? warmRankedMusic : warmMusic;
     const w = window as typeof window & {
       requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
       cancelIdleCallback?: (id: number) => void;
     };
     if (w.requestIdleCallback) {
-      const id = w.requestIdleCallback(warmMusic, { timeout: 2000 });
+      const id = w.requestIdleCallback(warm, { timeout: 2000 });
       return () => w.cancelIdleCallback?.(id);
     }
-    const id = window.setTimeout(warmMusic, 500);
+    const id = window.setTimeout(warm, 500);
     return () => window.clearTimeout(id);
   }, [phone, ranked]);
 
