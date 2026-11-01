@@ -1,4 +1,4 @@
-/** Years that have a file in public/years/. Canvas stays clear so the clip shows. */
+/** Years that have a still in public/years/stills. Canvas stays clear so the still shows. */
 const FIRST = 2008;
 const LAST = 2026;
 

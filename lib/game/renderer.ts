@@ -1,6 +1,6 @@
 import { getYearTheme } from "./constants";
 import { getYearFromScore } from "./engine";
-import { hasHtmlYearBg } from "./yearClips";
+import { hasHtmlYearBg } from "./yearBg";
 import type { Bird, Candlestick, GameState } from "./types";
 
 const PAPER = "#f3edd4";

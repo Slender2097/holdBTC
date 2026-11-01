@@ -7,7 +7,7 @@ import Header from "@/components/Header";
 import PaymentButton from "@/components/PaymentButton";
 import PaymentModal from "@/components/PaymentModal";
 import GameOverModal from "@/components/GameOverModal";
-import { preloadStartClip } from "@/components/year/YearStage";
+import { preloadStartStill } from "@/components/year/YearStill";
 import { useNostr } from "@/hooks/useNostr";
 import { usePayment } from "@/hooks/usePayment";
 
@@ -113,11 +113,11 @@ export default function HomePage() {
     return () => window.removeEventListener("keydown", onKey);
   }, [sheet]);
 
-  // Pay modal open: start loading the first ranked clip so its first frame is
-  // ready when the paid run mounts.
+  // Pay modal open: start loading the first year still so it is decoded when
+  // the paid run mounts.
   const invoiceOpen = payment.invoice != null && !payment.hasPaid;
   useEffect(() => {
-    if (invoiceOpen) preloadStartClip();
+    if (invoiceOpen) preloadStartStill();
   }, [invoiceOpen]);
 
   const handleRunStart = useCallback(() => {
