@@ -1,4 +1,4 @@
-/** Years that have a still in public/years/stills. Canvas stays clear so the still shows. */
+/** Years that have a still (public/years/stills) and a desktop clip (public/years/clips). Canvas stays clear so they show. */
 const FIRST = 2008;
 const LAST = 2026;
 

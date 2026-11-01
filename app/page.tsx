@@ -7,6 +7,7 @@ import Header from "@/components/Header";
 import PaymentButton from "@/components/PaymentButton";
 import PaymentModal from "@/components/PaymentModal";
 import GameOverModal from "@/components/GameOverModal";
+import { preloadStartClip } from "@/components/year/YearStage";
 import { preloadStartStill } from "@/components/year/YearStill";
 import { useNostr } from "@/hooks/useNostr";
 import { usePayment } from "@/hooks/usePayment";
@@ -114,10 +115,13 @@ export default function HomePage() {
   }, [sheet]);
 
   // Pay modal open: start loading the first year still so it is decoded when
-  // the paid run mounts.
+  // the paid run mounts. Desktop also starts the first year clip (a phone
+  // never loads one), with the still as the layer under it.
   const invoiceOpen = payment.invoice != null && !payment.hasPaid;
   useEffect(() => {
-    if (invoiceOpen) preloadStartStill();
+    if (!invoiceOpen) return;
+    preloadStartStill();
+    preloadStartClip();
   }, [invoiceOpen]);
 
   const handleRunStart = useCallback(() => {
