@@ -11,10 +11,29 @@ import { preloadStartClip } from "@/components/year/YearStage";
 import { preloadStartStill } from "@/components/year/YearStill";
 import { useNostr } from "@/hooks/useNostr";
 import { usePayment } from "@/hooks/usePayment";
+import { warmRankedMusic } from "@/lib/game/music";
 
 type RunLog = { flaps: number[]; frames: number; width: number; height: number };
 type PendingRun = { token: string; log: RunLog; score: number; distance: number };
 type SubmitResult = { eventId: string } | { error: string; retryable: boolean };
+
+// Phone layout (below lg), same test as the phone CSS in globals.css.
+const PHONE_LAYOUT = "not all and (min-width: 1024px)";
+
+// body.game-active locks scroll and touch gestures below lg (globals.css). Set
+// on the body directly, not through state, so starting a run does not
+// re-render the page.
+function setRunActive(on: boolean) {
+  document.body.classList.toggle("game-active", on);
+}
+
+// Phone: show the whole board. body is the scroll container (html and body
+// both set overflow-x). Only touches the page when it is scrolled.
+function scrollBoardIntoView() {
+  if (!window.matchMedia(PHONE_LAYOUT).matches) return;
+  if (document.body.scrollTop) document.body.scrollTo(0, 0);
+  if (window.scrollY) window.scrollTo(0, 0);
+}
 
 // Finished ranked runs not yet on the board. Survives refreshes; cleared on an eventId
 // or a final rejection. Holds nothing the server trusts: it re-verifies token and replay.
@@ -97,13 +116,8 @@ export default function HomePage() {
   const resumedRef = useRef(false);
   // Phone only (below lg): leaderboard and protocol open as a bottom sheet
   const [sheet, setSheet] = useState<"board" | "protocol" | null>(null);
-  const [runActive, setRunActive] = useState(false);
 
-  // body.game-active locks scroll and touch gestures below lg (globals.css)
-  useEffect(() => {
-    document.body.classList.toggle("game-active", runActive);
-    return () => document.body.classList.remove("game-active");
-  }, [runActive]);
+  useEffect(() => () => setRunActive(false), []);
 
   useEffect(() => {
     if (!sheet) return;
@@ -115,22 +129,32 @@ export default function HomePage() {
   }, [sheet]);
 
   // Pay modal open: start loading the first year still so it is decoded when
-  // the paid run mounts. Desktop also starts the first year clip (a phone
-  // never loads one), with the still as the layer under it.
+  // the paid run mounts, and ranked.mp3 so the start tap does not fetch it.
+  // Desktop also starts the first year clip (a phone never loads one), with
+  // the still as the layer under it.
   const invoiceOpen = payment.invoice != null && !payment.hasPaid;
   useEffect(() => {
     if (!invoiceOpen) return;
     preloadStartStill();
     preloadStartClip();
+    warmRankedMusic();
   }, [invoiceOpen]);
 
+  // Payment confirmed (or a saved claim after a refresh): the same, in case
+  // the modal never showed, and on a phone put the board in view now, so the
+  // start tap has nothing to scroll.
+  useEffect(() => {
+    if (!payment.hasPaid) return;
+    preloadStartStill();
+    preloadStartClip();
+    warmRankedMusic();
+    scrollBoardIntoView();
+  }, [payment.hasPaid]);
+
+  // Called after the first frame of the run has painted (phone) or on the
+  // first flap (desktop). No React state: the page does not re-render.
   const handleRunStart = useCallback(() => {
-    // Phone: the page may have been scrolled; show the whole board for the run.
-    // body is the scroll container (html and body both set overflow-x).
-    if (window.matchMedia("not all and (min-width: 1024px)").matches) {
-      document.body.scrollTo(0, 0);
-      window.scrollTo(0, 0);
-    }
+    scrollBoardIntoView();
     setRunActive(true);
   }, []);
 
@@ -162,6 +186,8 @@ export default function HomePage() {
       return;
     }
     setRankedWarning(null);
+    // Inside the click: start loading ranked.mp3 while the player pays.
+    warmRankedMusic();
     await payment.payToPlay(nostr.user.pubkey, nostr.signEvent);
   }, [payment, nostr.isLoggedIn, nostr.user?.pubkey, nostr.signEvent]);
 
