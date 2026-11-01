@@ -11,8 +11,9 @@ import {
 import { mulberry32, type Rng } from "@/lib/game/rng";
 import { renderFrame, resetFrameDamage } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
+import YearStage from "@/components/year/YearStage";
 import YearStill from "@/components/year/YearStill";
-import { isPhone } from "@/lib/device";
+import { isDesktop, isPhone, onDesktopChange } from "@/lib/device";
 import {
   musicMuted,
   playSfx,
@@ -28,6 +29,9 @@ const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : use
 // Phone (lib/device.ts). null during server render and hydration.
 const noSubscribe = () => () => {};
 const usePhone = () => useSyncExternalStore<boolean | null>(noSubscribe, isPhone, () => null);
+// Desktop (lg and up, fine pointer): the only place the year clip plays.
+// null during server render and hydration, so those paint the still.
+const useDesktop = () => useSyncExternalStore<boolean | null>(onDesktopChange, isDesktop, () => null);
 
 // Phone, before the run: a finger that moves mostly up or down by more than
 // SWIPE_SLOP (CSS px) is a scroll, not a tap. Chrome holds back touchmoves
@@ -103,6 +107,7 @@ export default function GameCanvas({
   const gameOverSent = useRef(false);
   const ranked = rankedSeed != null;
   const phone = usePhone() === true;
+  const desktop = useDesktop() === true;
   const phoneRef = useRef(phone);
   phoneRef.current = phone;
   const startTouchRef = useRef<StartTouch | null>(null);
@@ -123,8 +128,8 @@ export default function GameCanvas({
     // Backing store only; the logical board size (w, h), the ranked step and
     // the replay width/height stay the same. Every device caps at 1.5x, so a
     // 390 px board is a 585 px backing store on a 2x or 3x phone: the coin,
-    // pips, year and HUD text are sharp. There is no year video next to the
-    // loop any more (YearStill only), which is what made more pixels lag.
+    // pips, year and HUD text are sharp. A phone has no year video next to the
+    // loop (YearStill only), which is what made more pixels lag there.
     const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const w = parent.clientWidth;
     const h = parent.clientHeight || Math.min(window.innerHeight * 0.72, 640);
@@ -385,8 +390,15 @@ export default function GameCanvas({
       className={`relative w-full h-full min-h-[320px] max-lg:min-h-0 overflow-hidden ${className}`}
       style={{ isolation: "isolate" }}
     >
-      {/* Free play and ranked, every device: one still image per year. No video, no iframe. */}
-      <YearStill year={year} />
+      {desktop ? (
+        // Desktop (lg and up, fine pointer), free play and ranked: the year
+        // clip, with the year still under it until the clip has a frame.
+        <YearStage year={year} />
+      ) : (
+        // Phone and anything below lg or with a coarse pointer, free play and
+        // ranked: one still image per year. No video, no iframe.
+        <YearStill year={year} />
+      )}
       <button
         type="button"
         aria-label="Mute music"

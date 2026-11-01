@@ -64,9 +64,11 @@ export function preloadStartStill() {
 }
 
 /**
- * Free play and ranked, every device: the year scene as one still image
- * (scripts/record-year-stills.mjs), so no video or iframe runs next to the
- * game loop. public/years/<year>.html is only the source for the stills and
+ * Phone (and anything below lg or with a coarse pointer), free play and
+ * ranked: the year scene as one still image (scripts/record-year-stills.mjs),
+ * so no video or iframe runs next to the game loop. On desktop YearStage
+ * paints this under the year clip until the clip has a frame.
+ * public/years/<year>.html is only the source for the stills and clips and
  * is never fetched during play. The previous image stays painted until the next one
  * has decoded, so a year change or a restart never shows the empty layer.
  */
