@@ -1,6 +1,6 @@
 // Renders the free-play still of each public/years/<year>.html to an image.
-// Phone free play shows these instead of the iframe: one decoded image per
-// year costs the game loop nothing, while the iframe lags on a phone.
+// Free play and ranked show these on every device: one decoded image per year
+// costs the game loop nothing. The HTML scenes are never mounted in the app.
 //
 // Usage: npx -y -p playwright@1.56.1 node scripts/record-year-stills.mjs [year...]
 // Writes public/years/stills/<year>-{p,l}.webp (needs ffmpeg with libwebp on PATH).
@@ -11,13 +11,12 @@ import path from "node:path";
 
 const ROOT = path.resolve(path.dirname(new URL(import.meta.url).pathname), "..");
 const OUT = path.join(ROOT, "public/years/stills");
-// Same framing as the clips (scripts/record-year-clips.mjs)
+// 9:16 portrait and 16:9 landscape framing.
 const SIZES = { p: { width: 540, height: 960 }, l: { width: 960, height: 540 } };
 const SCALE = Number(process.env.SCALE || 1.5); // 810x1440 / 1440x810
 const QUALITY = process.env.QUALITY || "80";
 
-// Same as still() in components/year/YearStage.tsx: no scripts, no crayon
-// filter, no animation.
+// No scripts, no crayon filter, no animation.
 function still(html) {
   return html
     .replace(/<script[\s\S]*?<\/script>/gi, "")

@@ -11,7 +11,6 @@ import {
 import { mulberry32, type Rng } from "@/lib/game/rng";
 import { renderFrame, resetFrameDamage } from "@/lib/game/renderer";
 import type { GameState } from "@/lib/game/types";
-import YearStage from "@/components/year/YearStage";
 import YearStill from "@/components/year/YearStill";
 import { isPhone } from "@/lib/device";
 import {
@@ -122,10 +121,11 @@ export default function GameCanvas({
     if (startedRef.current) return;
 
     // Backing store only; the logical board size (w, h), the ranked step and
-    // the replay width/height stay the same. Desktop caps at 1.5x. Phone draws
-    // at 1x, free play and ranked: a 390 px board is a 390 px backing store,
-    // not 585 or 780, so each frame fills a third to a quarter of the pixels.
-    const dpr = isPhone() ? 1 : Math.min(window.devicePixelRatio || 1, 1.5);
+    // the replay width/height stay the same. Every device caps at 1.5x, so a
+    // 390 px board is a 585 px backing store on a 2x or 3x phone: the coin,
+    // pips, year and HUD text are sharp. There is no year video next to the
+    // loop any more (YearStill only), which is what made more pixels lag.
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
     const w = parent.clientWidth;
     const h = parent.clientHeight || Math.min(window.innerHeight * 0.72, 640);
 
@@ -385,13 +385,8 @@ export default function GameCanvas({
       className={`relative w-full h-full min-h-[320px] max-lg:min-h-0 overflow-hidden ${className}`}
       style={{ isolation: "isolate" }}
     >
-      {ranked ? (
-        // Ranked: the pre-recorded year clips.
-        <YearStage year={year} clip />
-      ) : (
-        // Free play, every device: one still image per year. No iframe, no clip.
-        <YearStill year={year} />
-      )}
+      {/* Free play and ranked, every device: one still image per year. No video, no iframe. */}
+      <YearStill year={year} />
       <button
         type="button"
         aria-label="Mute music"

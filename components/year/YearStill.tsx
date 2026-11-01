@@ -58,10 +58,16 @@ function release(img: HTMLImageElement) {
   for (const [url, el] of images) if (el === img) images.delete(url);
 }
 
+/** Load the start year's still ahead of the run (the pay modal calls this). */
+export function preloadStartStill() {
+  getImage(stillUrl(START_YEAR));
+}
+
 /**
- * Free play (every device), and ranked when the clip can't play: the year
- * scene as one still image (scripts/record-year-stills.mjs), so no iframe runs
- * next to the game loop. The previous image stays painted until the next one
+ * Free play and ranked, every device: the year scene as one still image
+ * (scripts/record-year-stills.mjs), so no video or iframe runs next to the
+ * game loop. public/years/<year>.html is only the source for the stills and
+ * is never fetched during play. The previous image stays painted until the next one
  * has decoded, so a year change or a restart never shows the empty layer.
  */
 export default function YearStill({ year }: { year: number }) {
