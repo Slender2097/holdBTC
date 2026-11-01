@@ -1,8 +1,8 @@
 // Records each public/years/<year>.html into a looping video clip that
-// desktop free play and ranked show behind the board (components/year
+// desktop paid (ranked) runs show behind the board (components/year
 // /YearStage.tsx). Video decodes off the main thread, so the full animated
 // scene (scripts, CSS, crayon filter) costs the game loop about the same as a
-// still image. Phone never plays these; it shows the stills.
+// still image. Free play and phone never play these; they show the stills.
 //
 // Usage: npx -y -p playwright@1.56.1 node scripts/record-year-clips.mjs [year...]
 // Needs ffmpeg with libx264 on PATH. Writes public/years/clips/<year>-{p,l}.mp4.

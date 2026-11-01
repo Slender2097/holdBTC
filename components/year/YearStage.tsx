@@ -7,9 +7,9 @@ import { isDesktop } from "@/lib/device";
 const START_YEAR = 2008;
 const inRange = (y: number) => y >= START_YEAR && y <= 2026;
 
-// Desktop only (lib/device.ts isDesktop): the 1080p clips from
-// scripts/record-year-clips.mjs. Phone never mounts this component and never
-// loads a clip; it shows YearStill.
+// Desktop paid runs only (lib/device.ts isDesktop): the 1080p clips from
+// scripts/record-year-clips.mjs. Free play and phone never mount this
+// component and never load a clip; they show YearStill.
 function clipUrl(year: number): string {
   const portrait = window.matchMedia("(orientation: portrait)").matches;
   return `/years/clips/${year}-${portrait ? "p" : "l"}.mp4`;
@@ -94,11 +94,12 @@ export function preloadStartClip() {
 }
 
 /**
- * Desktop year art, free play and ranked: the full scene pre-recorded as a
+ * Desktop year art in a paid (ranked) run: the full scene pre-recorded as a
  * looping video (scripts/record-year-clips.mjs). Video decodes off the main
- * thread, so it does not slow the game loop. GameCanvas mounts this only on
- * desktop (lg and up, fine pointer); a phone gets YearStill alone, and this
- * component also checks isDesktop() itself before it loads a clip. Falls back
+ * thread, so it does not slow the one-step-per-frame ranked loop. GameCanvas
+ * mounts this only for a ranked run on desktop (lg and up, fine pointer);
+ * free play and phone get YearStill alone, and this component also checks
+ * isDesktop() itself before it loads a clip. Falls back
  * to the year still (reduced motion, or a clip that fails to load). The HTML
  * scenes in public/years are never fetched during play.
  *

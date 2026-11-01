@@ -11,8 +11,8 @@ export function isPhone(): boolean {
 
 /**
  * Desktop: the lg breakpoint and up with a fine pointer. Never true when
- * isPhone() is (a coarse pointer, or anything below lg). Only desktop plays
- * the year clips. Client only.
+ * isPhone() is (a coarse pointer, or anything below lg). Only a paid run on
+ * desktop plays the year clips. Client only.
  */
 export const DESKTOP_QUERY = "(min-width: 1024px) and (pointer: fine)";
 

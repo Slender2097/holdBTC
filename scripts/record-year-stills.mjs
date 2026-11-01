@@ -1,7 +1,7 @@
 // Renders the free-play still of each public/years/<year>.html to an image.
-// Phone shows these in free play and ranked: one decoded image per year costs
-// the game loop nothing. Desktop paints them under the year clips
-// (scripts/record-year-clips.mjs). The HTML scenes are never mounted in the app.
+// Free play (every device) and phone ranked show these: one decoded image per
+// year costs the game loop nothing. Desktop ranked paints them under the year
+// clips (scripts/record-year-clips.mjs). The HTML scenes are never mounted in the app.
 //
 // Usage: npx -y -p playwright@1.56.1 node scripts/record-year-stills.mjs [year...]
 // Writes public/years/stills/<year>-{p,l}.webp (needs ffmpeg with libwebp on PATH).

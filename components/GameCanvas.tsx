@@ -29,7 +29,8 @@ const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : use
 // Phone (lib/device.ts). null during server render and hydration.
 const noSubscribe = () => () => {};
 const usePhone = () => useSyncExternalStore<boolean | null>(noSubscribe, isPhone, () => null);
-// Desktop (lg and up, fine pointer): the only place the year clip plays.
+// Desktop (lg and up, fine pointer): the only place the year clip plays, and
+// only in a paid (ranked) run.
 // null during server render and hydration, so those paint the still.
 const useDesktop = () => useSyncExternalStore<boolean | null>(onDesktopChange, isDesktop, () => null);
 
@@ -390,13 +391,13 @@ export default function GameCanvas({
       className={`relative w-full h-full min-h-[320px] max-lg:min-h-0 overflow-hidden ${className}`}
       style={{ isolation: "isolate" }}
     >
-      {desktop ? (
-        // Desktop (lg and up, fine pointer), free play and ranked: the year
-        // clip, with the year still under it until the clip has a frame.
+      {ranked && desktop ? (
+        // Desktop (lg and up, fine pointer), paid run only: the year clip,
+        // with the year still under it until the clip has a frame.
         <YearStage year={year} />
       ) : (
-        // Phone and anything below lg or with a coarse pointer, free play and
-        // ranked: one still image per year. No video, no iframe.
+        // Free play on every device, and phone (coarse pointer or below lg)
+        // in ranked too: one still image per year. No video, no iframe.
         <YearStill year={year} />
       )}
       <button
