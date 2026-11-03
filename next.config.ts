@@ -25,7 +25,8 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: blob: https:",
               "font-src 'self' data:",
-              "connect-src 'self' https: wss:",
+              // next dev only: also allow a Cashu test mint on this machine (http://127.0.0.1:3338)
+              isProd ? "connect-src 'self' https: wss:" : "connect-src 'self' https: wss: http://localhost:* http://127.0.0.1:*",
               "frame-src 'self'",
               "frame-ancestors 'none'",
               "base-uri 'self'",

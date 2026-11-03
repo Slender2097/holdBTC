@@ -132,6 +132,20 @@ export function usePayment() {
     setRankedSeed(null);
   }, []);
 
+  /**
+   * A ranked run paid another way (Cashu, see hooks/useCashuWallet.ts). The server already
+   * swapped the ecash and issued the token; from here it is the same run as a Lightning
+   * claim: same token, seed, replay and leaderboard path. Lightning state is not touched.
+   */
+  const startPaidRun = useCallback((token: string, seed: number | null, sats: number) => {
+    setError(null);
+    rankedTokenRef.current = token;
+    setRankedToken(token);
+    setRankedSeed(typeof seed === "number" ? seed : null);
+    setHasPaid(true);
+    setTotalPaidSats((s) => s + sats);
+  }, []);
+
   const claim = useCallback(async (saved: SavedInvoice) => {
     const pk = pubkeyRef.current;
     if (pk !== saved.pubkey) {
@@ -342,5 +356,6 @@ export function usePayment() {
     endRankedRun,
     consumePayment,
     cancelPayment,
+    startPaidRun,
   };
 }

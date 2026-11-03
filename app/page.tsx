@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import GameCanvas from "@/components/GameCanvas";
 import Leaderboard from "@/components/Leaderboard";
 import Header from "@/components/Header";
 import PaymentButton from "@/components/PaymentButton";
+import CashuButton from "@/components/CashuButton";
 import PaymentModal from "@/components/PaymentModal";
 import GameOverModal from "@/components/GameOverModal";
 import { preloadStartClip } from "@/components/year/YearStage";
@@ -12,6 +14,10 @@ import { preloadStartStill } from "@/components/year/YearStill";
 import { useNostr } from "@/hooks/useNostr";
 import { usePayment } from "@/hooks/usePayment";
 import { warmRankedMusic } from "@/lib/game/music";
+
+// Cashu wallet: loaded only when the player taps 50% OFF, so cashu-ts and
+// IndexedDB stay out of the page bundle and off the game's first paint.
+const CashuWalletPanel = dynamic(() => import("@/components/CashuWalletPanel"), { ssr: false });
 
 type RunLog = { flaps: number[]; frames: number; width: number; height: number };
 type PendingRun = { token: string; log: RunLog; score: number; distance: number };
@@ -116,6 +122,7 @@ export default function HomePage() {
   const resumedRef = useRef(false);
   // Phone only (below lg): leaderboard and protocol open as a bottom sheet
   const [sheet, setSheet] = useState<"board" | "protocol" | null>(null);
+  const [cashuOpen, setCashuOpen] = useState(false);
 
   useEffect(() => () => setRunActive(false), []);
 
@@ -132,7 +139,7 @@ export default function HomePage() {
   // the paid run mounts, and ranked.mp3 so the start tap does not fetch it.
   // Desktop also starts the first year clip (a phone never loads one), with
   // the still as the layer under it.
-  const invoiceOpen = payment.invoice != null && !payment.hasPaid;
+  const invoiceOpen = (payment.invoice != null || cashuOpen) && !payment.hasPaid;
   useEffect(() => {
     if (!invoiceOpen) return;
     preloadStartStill();
@@ -190,6 +197,35 @@ export default function HomePage() {
     warmRankedMusic();
     await payment.payToPlay(nostr.user.pubkey, nostr.signEvent);
   }, [payment, nostr.isLoggedIn, nostr.user?.pubkey, nostr.signEvent]);
+
+  // Same rule as the Lightning button: no wallet without a Nostr account.
+  const handleCashuOpen = useCallback(() => {
+    if (!nostr.isLoggedIn || !nostr.user?.pubkey) {
+      setRankedWarning(
+        "Login to your Nostr account to proceed with payment and rank your score."
+      );
+      return;
+    }
+    setRankedWarning(null);
+    // Inside the tap, like the Lightning button: start loading ranked.mp3.
+    warmRankedMusic();
+    setCashuOpen(true);
+  }, [nostr.isLoggedIn, nostr.user?.pubkey]);
+
+  // Logged out with the wallet open: close it.
+  useEffect(() => {
+    if (!userPubkey) setCashuOpen(false);
+  }, [userPubkey]);
+
+  const { startPaidRun } = payment;
+  const handleCashuRanked = useCallback(
+    (token: string, seed: number, sats: number) => {
+      setCashuOpen(false);
+      setRankedWarning(null);
+      startPaidRun(token, seed, sats);
+    },
+    [startPaidRun]
+  );
 
   const submitRanked = useCallback(async () => {
     const run = pendingSubmitRef.current;
@@ -340,11 +376,17 @@ export default function HomePage() {
       <main className="phone-main flex-1 max-w-5xl w-full mx-auto px-4 py-6 flex flex-col lg:flex-row gap-6 max-lg:min-h-0 max-lg:p-0 max-lg:gap-0">
         <div className="flex-1 flex flex-col gap-4 min-w-0 max-lg:min-h-0 max-lg:gap-0">
           <div className="phone-bar flex flex-wrap items-center justify-between gap-3 max-lg:flex-nowrap max-lg:gap-2 max-lg:px-3 max-lg:py-2 max-lg:border-b max-lg:border-alien-border/60 max-lg:bg-alien-deep/90">
-            <PaymentButton
-              hasPaid={payment.hasPaid}
-              paying={payment.paying || !!payment.invoice}
-              onPay={handlePayClick}
-            />
+            {/* Desktop: Lightning and Cashu side by side. Phone: "contents", so both sit
+                in the bar exactly where the Lightning button always was. */}
+            <div className="flex items-center gap-3 max-lg:contents">
+              <PaymentButton
+                hasPaid={payment.hasPaid}
+                paying={payment.paying || !!payment.invoice}
+                onPay={handlePayClick}
+              />
+              {/* Always rendered so the phone layout never shifts; off while a ranked run is ready */}
+              <CashuButton onOpen={handleCashuOpen} disabled={payment.hasPaid} />
+            </div>
             <div className="flex items-center gap-4 text-xs text-alien-muted font-mono max-lg:gap-2 max-lg:text-[10px] max-lg:ml-auto max-lg:shrink-0">
               <span className="max-sm:hidden">
                 GAMES <span className="text-white/80">{payment.gamesPlayed}</span>
@@ -380,6 +422,8 @@ export default function HomePage() {
               </button>
             </div>
           </div>
+
+          <CashuButton variant="row" onOpen={handleCashuOpen} disabled={payment.hasPaid} />
 
           {rankedWarning && (
             <p className="text-sm text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded-lg px-3 py-2 font-mono max-lg:mx-3 max-lg:mt-2 max-lg:text-xs max-lg:py-1.5">
@@ -526,6 +570,16 @@ export default function HomePage() {
           claiming={payment.claiming}
           claimError={payment.error}
           onRetryClaim={payment.claimRetryable ? payment.retryClaim : undefined}
+        />
+      )}
+
+      {cashuOpen && (
+        <CashuWalletPanel
+          onClose={() => setCashuOpen(false)}
+          pubkey={userPubkey}
+          signEvent={userPubkey ? nostr.signEvent : undefined}
+          rankedReady={payment.hasPaid}
+          onRankedReady={handleCashuRanked}
         />
       )}
 

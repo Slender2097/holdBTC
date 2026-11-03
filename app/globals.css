@@ -98,6 +98,30 @@ body {
   }
 }
 
+/* Cashu 50% OFF button (components/CashuButton.tsx). Desktop and phone landscape:
+   in the bar next to the Lightning button. Phone portrait: the bar has no room
+   left beside the Lightning button without clipping its label, so the Cashu
+   button gets a slim row under the bar instead. */
+.cashu-row {
+  display: none;
+}
+@media not all and (min-width: 1024px) {
+  .phone-bar .cashu-btn {
+    display: none;
+  }
+  .cashu-row {
+    display: block;
+  }
+}
+@media (max-width: 1023.98px) and (max-height: 500px) {
+  .phone-bar .cashu-btn {
+    display: inline-flex;
+  }
+  .cashu-row {
+    display: none;
+  }
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 5px;

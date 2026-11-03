@@ -84,13 +84,16 @@ const clipsAllowed = () => isDesktop() && !reducedMotion() && !clipFailed;
 const STALL_MS = 2000;
 
 /**
- * Desktop: start loading the first clip before the run mounts (the pay modal
- * calls this), so its first frame is often ready when payment confirms. Does
- * nothing on a phone.
+ * Desktop: start loading the first clip before the run mounts (the Lightning pay
+ * modal and the Cashu wallet call this), so its first frame is often ready when
+ * payment confirms. After an earlier run the clip is already loaded but parked
+ * mid-loop: rewind it now, off screen, so the next run does not wait on a seek.
+ * Does nothing on a phone.
  */
 export function preloadStartClip() {
   if (!clipsAllowed()) return;
-  getVideo(clipUrl(START_YEAR));
+  const v = getVideo(clipUrl(START_YEAR));
+  if (!v.isConnected && v.currentTime > 0) v.currentTime = 0;
 }
 
 /**
@@ -159,26 +162,46 @@ export default function YearStage({ year }: { year: number }) {
     }
 
     let done = false;
+    let revealed = false;
     let stallTimer = 0;
-    let paintTimer = 0;
-    const reveal = () => {
+
+    // Autoplay can be refused (a browser setting, power saving). That only
+    // affects this play() call: the player's next tap, click or key (a run
+    // starts with one) tries again. Clips are never turned off for it.
+    const tryPlay = () => {
+      if (done || !v.paused) return;
+      v.play().catch(() => {});
+    };
+    window.addEventListener("pointerdown", tryPlay, true);
+    window.addEventListener("keydown", tryPlay, true);
+
+    // Show the clip as soon as it has a frame. A reused clip (the start year,
+    // from an earlier run) never fires "loadeddata" again, so any event that
+    // means "a frame is here" counts, and the readyState is checked each time.
+    const reveal = (force = false) => {
+      if (revealed || done || (!force && !canShow(v))) return;
+      revealed = true;
       window.clearTimeout(stallTimer);
       v.style.opacity = "1";
       shownVideo = v;
-      // Drop the layers under the clip only after it has painted a frame.
+      // Drop the layers under the clip (the still, the last clip) only after
+      // the clip has actually painted a frame.
       let once = false;
       const onPainted = () => {
         if (once || done || shownVideo !== v) return;
         once = true;
-        window.clearTimeout(paintTimer);
         if (prev) release(prev);
         setPainted(year);
       };
-      if ("requestVideoFrameCallback" in v) v.requestVideoFrameCallback(onPainted);
-      else requestAnimationFrame(() => requestAnimationFrame(onPainted));
-      // A paused clip (autoplay blocked) may never call back; its frame is up by now.
-      paintTimer = window.setTimeout(onPainted, 1000);
+      if (typeof v.requestVideoFrameCallback === "function") v.requestVideoFrameCallback(onPainted);
+      else {
+        const check = () => (done ? undefined : !v.paused && canShow(v) ? onPainted() : requestAnimationFrame(check));
+        requestAnimationFrame(() => requestAnimationFrame(check));
+      }
     };
+    const onFrameReady = () => reveal();
+    const FRAME_EVENTS = ["loadeddata", "canplay", "seeked", "playing"] as const;
+    for (const e of FRAME_EVENTS) v.addEventListener(e, onFrameReady);
 
     // Read before the seek: seeking drops readyState until the seek ends.
     const ready = canShow(v);
@@ -188,24 +211,27 @@ export default function YearStage({ year }: { year: number }) {
     }
     // Clip already loaded (restart in the start year): seek, do not recreate.
     if (v.currentTime > 0) v.currentTime = 0;
-    v.play().catch(() => {});
+    tryPlay();
 
-    if (ready) reveal();
+    // Had a frame before the seek: it stays up while seeking, show it now.
+    if (ready) reveal(true);
     else {
-      v.addEventListener("loadeddata", reveal, { once: true });
       // No "error" and no frame (a stall, or a link too slow for the run):
-      // stop waiting and keep the still for this run.
+      // stop waiting and keep the still for this run. The next run tries again.
       stallTimer = window.setTimeout(() => {
-        if (!done && !canShow(v)) setStalled(true);
+        if (done) return;
+        if (canShow(v)) reveal();
+        else setStalled(true);
       }, STALL_MS);
     }
 
     return () => {
       done = true;
       window.clearTimeout(stallTimer);
-      window.clearTimeout(paintTimer);
+      window.removeEventListener("pointerdown", tryPlay, true);
+      window.removeEventListener("keydown", tryPlay, true);
       v.removeEventListener("error", onError);
-      v.removeEventListener("loadeddata", reveal);
+      for (const e of FRAME_EVENTS) v.removeEventListener(e, onFrameReady);
       // Never revealed: the next clip takes over, prev stays as the fallback.
       if (shownVideo !== v) release(v);
       else if (prev) release(prev);
