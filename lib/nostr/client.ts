@@ -29,8 +29,12 @@ function buildNoteTemplate(score: number, distance: number): EventTemplate {
 
 async function signTemplate(
   template: EventTemplate,
-  sk?: Uint8Array | null
+  sk?: Uint8Array | null,
+  signer?: (template: EventTemplate) => Promise<Event>
 ): Promise<Event | null> {
+  // Remote signer login (NIP-46): sign there, and let its error reach the player.
+  if (signer) return signer(template);
+
   // If a private key was provided (nsec login), ALWAYS use it.
   // Do not fall back to the browser extension (different account).
   if (sk) {
@@ -63,12 +67,13 @@ async function signTemplate(
 /** Signs the share note in the browser. The server publishes it to relays. */
 export async function publishNote(params: {
   sk?: Uint8Array | null;
+  signer?: (template: EventTemplate) => Promise<Event>;
   score: number;
   distance: number;
 }): Promise<Event | null> {
-  const { sk, score, distance } = params;
+  const { sk, signer, score, distance } = params;
   const template = buildNoteTemplate(score, distance);
-  const signed = await signTemplate(template, sk);
+  const signed = await signTemplate(template, sk, signer);
   if (!signed) return null;
 
   const res = await fetch("/api/share-note", {

@@ -370,6 +370,11 @@ export default function HomePage() {
         onLoginNip07={nostr.loginWithNip07}
         onCancelNip07={nostr.cancelNip07}
         onLoginNsec={nostr.loginWithNsec}
+        remote={nostr.remote}
+        remoteAuthUrl={nostr.remoteAuthUrl}
+        onLoginRemote={nostr.loginWithRemote}
+        onLoginBunker={nostr.loginWithBunker}
+        onCancelRemote={nostr.cancelRemoteLogin}
         onLogout={nostr.logout}
       />
 

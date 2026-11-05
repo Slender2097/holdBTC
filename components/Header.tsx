@@ -1,7 +1,7 @@
 "use client";
 
 import NostrLogin from "@/components/NostrLogin";
-import type { NostrUser } from "@/hooks/useNostr";
+import type { NostrUser, RemoteLoginState } from "@/hooks/useNostr";
 
 interface HeaderProps {
   user: NostrUser | null;
@@ -10,6 +10,11 @@ interface HeaderProps {
   onLoginNip07: () => void;
   onCancelNip07?: () => void;
   onLoginNsec: (nsec: string) => boolean;
+  remote: RemoteLoginState;
+  remoteAuthUrl: string | null;
+  onLoginRemote: () => void;
+  onLoginBunker: (input: string) => void;
+  onCancelRemote: () => void;
   onLogout: () => void;
 }
 
@@ -20,6 +25,11 @@ export default function Header({
   onLoginNip07,
   onCancelNip07,
   onLoginNsec,
+  remote,
+  remoteAuthUrl,
+  onLoginRemote,
+  onLoginBunker,
+  onCancelRemote,
   onLogout,
 }: HeaderProps) {
   return (
@@ -35,7 +45,8 @@ export default function Header({
               HB
             </span>
           </div>
-          <div className="min-w-0">
+          {/* Logged out on a narrow phone, three login buttons need the room: the HB badge stays. */}
+          <div className={user ? "min-w-0" : "min-w-0 max-[379px]:hidden"}>
             <h1 className="font-bold text-2xl tracking-widest leading-none text-white max-lg:text-lg">
               HOLD<span className="text-alien-cyan">BTC</span>
             </h1>
@@ -51,6 +62,11 @@ export default function Header({
           onLoginNip07={onLoginNip07}
           onCancelNip07={onCancelNip07}
           onLoginNsec={onLoginNsec}
+          remote={remote}
+          remoteAuthUrl={remoteAuthUrl}
+          onLoginRemote={onLoginRemote}
+          onLoginBunker={onLoginBunker}
+          onCancelRemote={onCancelRemote}
           onLogout={onLogout}
         />
       </div>
