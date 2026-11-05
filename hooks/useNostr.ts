@@ -10,9 +10,24 @@ import {
   type NostrProfile,
 } from "@/lib/nostr/client";
 import { parseNsec, toNpub } from "@/lib/nostr/utils";
+import {
+  clearRemote,
+  loadRemote,
+  remoteErrorMessage,
+  saveRemote,
+} from "@/lib/nostr/remoteSession";
+import type { RemoteSession } from "@/lib/nostr/remoteSigner";
+import { safeHttpsImageUrl } from "@/lib/security/safeUrl";
+import type { BunkerSigner } from "nostr-tools/nip46";
 import { finalizeEvent, getPublicKey, type Event, type EventTemplate } from "nostr-tools";
 
-export type AuthMode = "none" | "nip07" | "nsec" | "ephemeral";
+export type AuthMode = "none" | "nip07" | "nsec" | "ephemeral" | "nip46";
+
+/** Remote signer (NIP-46) login, shown in the login panel. */
+export type RemoteLoginState =
+  | { phase: "idle" }
+  | { phase: "waiting"; via: "connect" | "bunker"; uri?: string }
+  | { phase: "error"; message: string };
 
 export interface NostrUser {
   pubkey: string;
@@ -26,6 +41,10 @@ const STORAGE_KEY = "holdbtc_nostr_user";
 // Pasted nsec or ephemeral key, kept in localStorage until logout (like Primal web).
 const SK_KEY = "holdbtc_nsec_sk";
 const NIP07_RESUME_KEY = "holdbtc_nip07_resume";
+
+// The NIP-46 code (nostr-tools pool, nip44, nip46) loads only when a remote
+// login starts or resumes, so other players do not download it.
+const loadRemoteSigner = () => import("@/lib/nostr/remoteSigner");
 
 function skToHex(sk: Uint8Array): string {
   return Array.from(sk)
@@ -129,6 +148,7 @@ function clearUserStorage() {
     /* ignore */
   }
   clearSk();
+  clearRemote();
 }
 
 
@@ -164,6 +184,28 @@ export function useNostr() {
   const [error, setError] = useState<string | null>(null);
   const skRef = useRef<Uint8Array | null>(null);
   const nip07Attempt = useRef(0);
+  const remoteRef = useRef<BunkerSigner | null>(null);
+  const remoteAbort = useRef<AbortController | null>(null);
+  const [remote, setRemote] = useState<RemoteLoginState>({ phase: "idle" });
+  // A signer may ask the user to approve on a web page (NIP-46 auth_url).
+  const [remoteAuthUrl, setRemoteAuthUrl] = useState<string | null>(null);
+
+  const onRemoteAuth = useCallback((url: string) => {
+    const safe = safeHttpsImageUrl(url);
+    if (!safe) return;
+    setRemoteAuthUrl(safe);
+    try {
+      window.open(safe, "_blank", "noopener,noreferrer");
+    } catch {
+      /* the panel shows the link */
+    }
+  }, []);
+
+  const dropRemoteSigner = useCallback(() => {
+    remoteRef.current?.close().catch(() => {});
+    remoteRef.current = null;
+    setRemoteAuthUrl(null);
+  }, []);
 
   const loadProfile = useCallback(async (pubkey: string) => {
     try {
@@ -222,6 +264,18 @@ export function useNostr() {
           skRef.current = sk;
         }
 
+        if (saved.mode === "nip46") {
+          const conn = loadRemote();
+          if (!conn || conn.userPubkey !== saved.pubkey.toLowerCase()) {
+            clearUserStorage();
+            return;
+          }
+          // Same client key and bunker as before: no new approval is needed.
+          const { resumeRemote } = await loadRemoteSigner();
+          if (cancelled) return;
+          remoteRef.current = resumeRemote(conn, onRemoteAuth);
+        }
+
         if (!cancelled) {
           setUser(saved);
           loadProfile(saved.pubkey);
@@ -236,7 +290,7 @@ export function useNostr() {
     return () => {
       cancelled = true;
     };
-  }, [loadProfile]);
+  }, [loadProfile, onRemoteAuth]);
 
   const cancelNip07 = useCallback(() => {
     nip07Attempt.current += 1;
@@ -331,15 +385,94 @@ export function useNostr() {
     setError(null);
   }, []);
 
+  const finishRemoteLogin = useCallback(
+    (session: RemoteSession) => {
+      skRef.current = null;
+      clearSk();
+      remoteRef.current = session.signer;
+      saveRemote(session.saved);
+      const pk = session.saved.userPubkey;
+      const next: NostrUser = { pubkey: pk, npub: toNpub(pk), mode: "nip46" };
+      setRemote({ phase: "idle" });
+      setRemoteAuthUrl(null);
+      setError(null);
+      setUser(next);
+      saveUserToStorage(next);
+      loadProfile(pk);
+    },
+    [loadProfile]
+  );
+
+  const runRemoteLogin = useCallback(
+    async (
+      via: "connect" | "bunker",
+      connect: (
+        mod: Awaited<ReturnType<typeof loadRemoteSigner>>,
+        signal: AbortSignal,
+        showUri: (uri: string) => void
+      ) => Promise<RemoteSession>
+    ) => {
+      remoteAbort.current?.abort();
+      const abort = new AbortController();
+      remoteAbort.current = abort;
+      setRemoteAuthUrl(null);
+      setRemote({ phase: "waiting", via });
+      try {
+        const mod = await loadRemoteSigner();
+        if (abort.signal.aborted) return;
+        const session = await connect(mod, abort.signal, (uri) => {
+          if (!abort.signal.aborted) setRemote({ phase: "waiting", via, uri });
+        });
+        if (abort.signal.aborted) {
+          session.signer.close().catch(() => {});
+          return;
+        }
+        finishRemoteLogin(session);
+      } catch (err) {
+        if (abort.signal.aborted) return;
+        setRemote({ phase: "error", message: remoteErrorMessage(err, "Remote login failed") });
+      } finally {
+        if (remoteAbort.current === abort) remoteAbort.current = null;
+      }
+    },
+    [finishRemoteLogin]
+  );
+
+  /** Starts a nostrconnect:// session for Primal (or any NIP-46 signer) to approve. */
+  const loginWithRemote = useCallback(
+    () =>
+      runRemoteLogin("connect", (mod, signal, showUri) => {
+        const req = mod.createConnectRequest();
+        showUri(req.uri);
+        return mod.waitForConnect(req, signal, onRemoteAuth);
+      }),
+    [runRemoteLogin, onRemoteAuth]
+  );
+
+  /** Connects with a pasted bunker:// link. */
+  const loginWithBunker = useCallback(
+    (input: string) =>
+      runRemoteLogin("bunker", (mod, signal) => mod.connectBunker(input, signal, onRemoteAuth)),
+    [runRemoteLogin, onRemoteAuth]
+  );
+
+  const cancelRemoteLogin = useCallback(() => {
+    remoteAbort.current?.abort();
+    remoteAbort.current = null;
+    setRemote({ phase: "idle" });
+    setRemoteAuthUrl(null);
+  }, []);
+
   const logout = useCallback(() => {
     if (skRef.current) {
       skRef.current.fill(0);
       skRef.current = null;
     }
+    dropRemoteSigner();
     setUser(null);
     setError(null);
     clearUserStorage();
-  }, []);
+  }, [dropRemoteSigner]);
 
   // Logout in another tab removes the saved login; drop the key here too.
   useEffect(() => {
@@ -351,11 +484,12 @@ export function useNostr() {
         skRef.current.fill(0);
         skRef.current = null;
       }
+      dropRemoteSigner();
       setUser(null);
     };
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
-  }, []);
+  }, [dropRemoteSigner]);
 
   const signEvent = useCallback(
     async (template: EventTemplate): Promise<Event> => {
@@ -365,18 +499,40 @@ export function useNostr() {
       if (user?.mode === "nsec" || user?.mode === "ephemeral") {
         throw new Error("Paste your nsec again to sign. This tab no longer has the key.");
       }
+      if (user?.mode === "nip46") {
+        // Never fall back to an extension: it may be a different account.
+        if (!remoteRef.current) {
+          throw new Error("Remote signer disconnected. Log in with Primal again.");
+        }
+        const signer = remoteRef.current;
+        const { remoteSign } = await loadRemoteSigner();
+        return remoteSign(signer, template, user.pubkey);
+      }
       const nostr = typeof window !== "undefined" ? (window as any).nostr : null;
       if (nostr?.signEvent) {
         return nostr.signEvent(template);
       }
       throw new Error("Use a Nostr extension, or login again with nsec.");
     },
-    [user?.mode]
+    [user?.mode, user?.pubkey]
   );
 
   const publishNote = useCallback(
     async (score: number, distance: number) => {
       if (!user) return null;
+      if (user.mode === "nip46") {
+        const signer = remoteRef.current;
+        if (!signer) {
+          setError("Remote signer disconnected. Log in with Primal again.");
+          return null;
+        }
+        return publishNoteEvent({
+          score,
+          distance,
+          signer: async (template) =>
+            (await loadRemoteSigner()).remoteSign(signer, template, user.pubkey),
+        });
+      }
       if (user.mode !== "nip07" && !skRef.current) {
         setError("Session key missing. Login again with nsec to publish.");
         return null;
@@ -398,6 +554,11 @@ export function useNostr() {
     cancelNip07,
     loginWithNsec,
     loginEphemeral,
+    remote,
+    remoteAuthUrl,
+    loginWithRemote,
+    loginWithBunker,
+    cancelRemoteLogin,
     logout,
     signEvent,
     publishNote,
