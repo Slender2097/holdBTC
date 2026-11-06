@@ -13,6 +13,8 @@ interface HeaderProps {
   remote: RemoteLoginState;
   remoteAuthUrl: string | null;
   onLoginRemote: () => void;
+  onResumeRemote: () => void;
+  onStartOverRemote: () => void;
   onLoginBunker: (input: string) => void;
   onCancelRemote: () => void;
   onLogout: () => void;
@@ -28,6 +30,8 @@ export default function Header({
   remote,
   remoteAuthUrl,
   onLoginRemote,
+  onResumeRemote,
+  onStartOverRemote,
   onLoginBunker,
   onCancelRemote,
   onLogout,
@@ -65,6 +69,8 @@ export default function Header({
           remote={remote}
           remoteAuthUrl={remoteAuthUrl}
           onLoginRemote={onLoginRemote}
+          onResumeRemote={onResumeRemote}
+          onStartOverRemote={onStartOverRemote}
           onLoginBunker={onLoginBunker}
           onCancelRemote={onCancelRemote}
           onLogout={onLogout}

@@ -26,8 +26,10 @@ export type AuthMode = "none" | "nip07" | "nsec" | "ephemeral" | "nip46";
 /** Remote signer (NIP-46) login, shown in the login panel. */
 export type RemoteLoginState =
   | { phase: "idle" }
-  | { phase: "waiting"; via: "connect" | "bunker"; uri?: string }
-  | { phase: "error"; message: string };
+  | { phase: "waiting"; via: "connect" | "bunker" | "resume"; uri?: string }
+  // A signer approved this browser before, but that login did not finish.
+  | { phase: "resume" }
+  | { phase: "error"; message: string; canResume: boolean };
 
 export interface NostrUser {
   pubkey: string;
@@ -405,7 +407,7 @@ export function useNostr() {
 
   const runRemoteLogin = useCallback(
     async (
-      via: "connect" | "bunker",
+      via: "connect" | "bunker" | "resume",
       connect: (
         mod: Awaited<ReturnType<typeof loadRemoteSigner>>,
         signal: AbortSignal,
@@ -430,7 +432,11 @@ export function useNostr() {
         finishRemoteLogin(session);
       } catch (err) {
         if (abort.signal.aborted) return;
-        setRemote({ phase: "error", message: remoteErrorMessage(err, "Remote login failed") });
+        setRemote({
+          phase: "error",
+          message: remoteErrorMessage(err, "Remote login failed"),
+          canResume: !!loadRemote(),
+        });
       } finally {
         if (remoteAbort.current === abort) remoteAbort.current = null;
       }
@@ -438,8 +444,7 @@ export function useNostr() {
     [finishRemoteLogin]
   );
 
-  /** Starts a nostrconnect:// session for Primal (or any NIP-46 signer) to approve. */
-  const loginWithRemote = useCallback(
+  const startFreshRemote = useCallback(
     () =>
       runRemoteLogin("connect", (mod, signal, showUri) => {
         const req = mod.createConnectRequest();
@@ -449,10 +454,45 @@ export function useNostr() {
     [runRemoteLogin, onRemoteAuth]
   );
 
-  /** Connects with a pasted bunker:// link. */
+  /**
+   * Opens remote login. If a signer already approved this browser but the
+   * login did not finish, the player chooses: resume it, or start over.
+   */
+  const loginWithRemote = useCallback(() => {
+    if (loadRemote()) {
+      remoteAbort.current?.abort();
+      remoteAbort.current = null;
+      setRemoteAuthUrl(null);
+      setRemote({ phase: "resume" });
+      return;
+    }
+    startFreshRemote();
+  }, [startFreshRemote]);
+
+  /** Same client key and signer as last time: asks for the pubkey again. */
+  const resumeRemoteLogin = useCallback(() => {
+    const conn = loadRemote();
+    if (!conn) {
+      startFreshRemote();
+      return;
+    }
+    runRemoteLogin("resume", (mod, signal) => mod.resumePending(conn, signal, onRemoteAuth));
+  }, [runRemoteLogin, startFreshRemote, onRemoteAuth]);
+
+  /** Forgets the unfinished connection and makes a new nostrconnect:// link. */
+  const startOverRemoteLogin = useCallback(() => {
+    clearRemote();
+    startFreshRemote();
+  }, [startFreshRemote]);
+
+  /** Connects with a pasted bunker:// link (a new connection). */
   const loginWithBunker = useCallback(
-    (input: string) =>
-      runRemoteLogin("bunker", (mod, signal) => mod.connectBunker(input, signal, onRemoteAuth)),
+    (input: string) => {
+      clearRemote();
+      return runRemoteLogin("bunker", (mod, signal) =>
+        mod.connectBunker(input, signal, onRemoteAuth)
+      );
+    },
     [runRemoteLogin, onRemoteAuth]
   );
 
@@ -468,7 +508,13 @@ export function useNostr() {
       skRef.current.fill(0);
       skRef.current = null;
     }
+    // Remote login: close the signer, stop any login still waiting, and
+    // forget the connection (clearUserStorage removes holdbtc_nip46), so the
+    // next login starts clean.
     dropRemoteSigner();
+    remoteAbort.current?.abort();
+    remoteAbort.current = null;
+    setRemote({ phase: "idle" });
     setUser(null);
     setError(null);
     clearUserStorage();
@@ -557,6 +603,8 @@ export function useNostr() {
     remote,
     remoteAuthUrl,
     loginWithRemote,
+    resumeRemoteLogin,
+    startOverRemoteLogin,
     loginWithBunker,
     cancelRemoteLogin,
     logout,
