@@ -21,8 +21,8 @@ export interface SavedRemote {
   bunkerPubkey: string;
   relays: string[];
   secret: string | null;
-  /** The account the signer signs as. */
-  userPubkey: string;
+  /** The account the signer signs as; null while the login has not finished. */
+  userPubkey: string | null;
 }
 
 export class RemoteSignerError extends Error {
@@ -78,7 +78,7 @@ export function loadRemote(): SavedRemote | null {
       d?.v === 1 &&
       isHex64(d.clientSk) &&
       isHex64(d.bunkerPubkey) &&
-      isHex64(d.userPubkey) &&
+      (d.userPubkey === null || isHex64(d.userPubkey)) &&
       Array.isArray(d.relays) &&
       d.relays.length > 0 &&
       d.relays.every(isRelayUrl) &&

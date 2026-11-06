@@ -15,6 +15,8 @@ interface NostrLoginProps {
   remote: RemoteLoginState;
   remoteAuthUrl: string | null;
   onLoginRemote: () => void;
+  onResumeRemote: () => void;
+  onStartOverRemote: () => void;
   onLoginBunker: (input: string) => void;
   onCancelRemote: () => void;
   onLogout: () => void;
@@ -30,6 +32,8 @@ export default function NostrLogin({
   remote,
   remoteAuthUrl,
   onLoginRemote,
+  onResumeRemote,
+  onStartOverRemote,
   onLoginBunker,
   onCancelRemote,
   onLogout,
@@ -346,6 +350,14 @@ export default function NostrLogin({
 
             {remote.phase === "waiting" && remote.via === "connect" && (
               <>
+                {/* Phone: the QR code is the main way in; Open Primal is the shortcut. */}
+                <button
+                  type="button"
+                  onClick={() => setQrOnPhone((v) => !v)}
+                  className="mt-3 h-10 w-full rounded-md bg-alien-cyan text-alien-void text-sm font-semibold lg:hidden"
+                >
+                  {qrOnPhone ? "Hide QR code" : "Show QR code"}
+                </button>
                 <div className={`mt-3 flex justify-center ${qrOnPhone ? "" : "max-lg:hidden"}`}>
                   <div className="w-[200px] h-[200px] rounded-lg bg-white p-1.5 flex items-center justify-center">
                     {remoteQr ? (
@@ -358,7 +370,7 @@ export default function NostrLogin({
                 <div className="mt-3 grid grid-cols-2 gap-1.5 lg:grid-cols-1">
                   <a
                     href={remoteUri}
-                    className="h-10 flex items-center justify-center rounded-md bg-alien-cyan text-alien-void text-sm font-semibold lg:hidden"
+                    className="h-10 flex items-center justify-center rounded-md border border-alien-cyan/40 text-alien-cyan text-sm font-mono lg:hidden"
                   >
                     Open Primal
                   </a>
@@ -371,14 +383,7 @@ export default function NostrLogin({
                   </button>
                 </div>
                 <p className="mt-2 text-[11px] font-mono text-alien-muted leading-relaxed lg:hidden">
-                  Primal on another device?{" "}
-                  <button
-                    type="button"
-                    className="underline text-alien-cyan"
-                    onClick={() => setQrOnPhone((v) => !v)}
-                  >
-                    {qrOnPhone ? "Hide QR code" : "Show QR code"}
-                  </button>
+                  If Open Primal fails, use the QR.
                 </p>
               </>
             )}
@@ -401,19 +406,45 @@ export default function NostrLogin({
               </a>
             )}
 
+            {remote.phase === "resume" && (
+              <p className="mt-3 text-xs text-white font-mono leading-relaxed">
+                Your signer already approved Hold BTC here, but that login did not finish.
+              </p>
+            )}
+
             {remote.phase === "error" && (
-              <div className="mt-3">
-                <p className="text-xs text-red-400 font-mono leading-relaxed" role="alert">
-                  {remote.message}
-                </p>
+              <p className="mt-3 text-xs text-red-400 font-mono leading-relaxed" role="alert">
+                {remote.message}
+              </p>
+            )}
+
+            {(remote.phase === "resume" || (remote.phase === "error" && remote.canResume)) && (
+              <div className="mt-2 grid gap-1.5">
                 <button
                   type="button"
-                  onClick={() => onLoginRemote()}
-                  className="mt-2 h-10 w-full rounded-md bg-alien-cyan text-alien-void text-sm font-semibold"
+                  onClick={() => onResumeRemote()}
+                  className="h-10 w-full rounded-md bg-alien-cyan text-alien-void text-sm font-semibold"
                 >
-                  Try again
+                  Resume previous session
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onStartOverRemote()}
+                  className="h-10 w-full rounded-md border border-alien-border text-sm font-mono text-alien-muted hover:text-white"
+                >
+                  Start over
                 </button>
               </div>
+            )}
+
+            {remote.phase === "error" && !remote.canResume && (
+              <button
+                type="button"
+                onClick={() => onLoginRemote()}
+                className="mt-2 h-10 w-full rounded-md bg-alien-cyan text-alien-void text-sm font-semibold"
+              >
+                Try again
+              </button>
             )}
 
             <div className="mt-3 pt-3 border-t border-alien-border/70">

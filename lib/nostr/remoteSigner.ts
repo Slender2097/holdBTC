@@ -21,6 +21,7 @@ import {
   isHex64,
   isRelayUrl,
   remoteErrorMessage,
+  saveRemote,
   type SavedRemote,
 } from "./remoteSession";
 
@@ -36,11 +37,13 @@ const PERMS = ["get_public_key", "sign_event:22242", "sign_event:1"];
 
 export const CONNECT_TIMEOUT_MS = 120_000;
 const PUBKEY_TIMEOUT_MS = 30_000;
+// Phones: the player is in the signer app, and the browser may sleep.
+const PUBKEY_TIMEOUT_PHONE_MS = 60_000;
 const SIGN_TIMEOUT_MS = 90_000;
 
 export interface RemoteSession {
   signer: BunkerSigner;
-  saved: SavedRemote;
+  saved: SavedRemote & { userPubkey: string };
 }
 
 export interface ConnectRequest {
@@ -108,6 +111,105 @@ function guard<T>(
   });
 }
 
+function pubkeyWindowMs(): number {
+  try {
+    return window.matchMedia("(pointer: coarse)").matches
+      ? PUBKEY_TIMEOUT_PHONE_MS
+      : PUBKEY_TIMEOUT_MS;
+  } catch {
+    return PUBKEY_TIMEOUT_MS;
+  }
+}
+
+/**
+ * Asks the signer for the user's pubkey, always with the same client key.
+ *
+ * On a phone the page sleeps while the player approves in Primal, and the
+ * relay socket can drop with the reply in it. So: if the first ask fails or
+ * times out, ask once more with a new window; and the first time the page
+ * comes back to the foreground, open fresh relay sockets and ask again.
+ */
+function askPubkey(signer: BunkerSigner, signal?: AbortSignal): Promise<string> {
+  const windowMs = pubkeyWindowMs();
+  return new Promise<string>((resolve, reject) => {
+    let settled = false;
+    let attempt = 0;
+    let retried = false;
+    let askedOnReturn = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let lastError: unknown = null;
+
+    const cleanup = () => {
+      settled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      signal?.removeEventListener("abort", onAbort);
+    };
+    const failed = (n: number, err: unknown) => {
+      if (settled || n !== attempt) return; // an older ask; a newer one is in flight
+      lastError = err;
+      if (!retried) {
+        retried = true;
+        ask();
+        return;
+      }
+      cleanup();
+      reject(
+        lastError instanceof RemoteSignerError
+          ? lastError
+          : new Error(remoteErrorMessage(lastError, "Your signer did not send your public key"))
+      );
+    };
+    const ask = () => {
+      const n = ++attempt;
+      clearTimeout(timer);
+      timer = setTimeout(
+        () =>
+          failed(
+            n,
+            new RemoteSignerError(
+              "timeout",
+              "Your signer approved Hold BTC but did not send your public key."
+            )
+          ),
+        windowMs
+      );
+      signer.sendRequest("get_public_key", []).then(
+        (pubkey) => {
+          if (settled) return;
+          cleanup();
+          resolve(pubkey);
+        },
+        (err) => failed(n, err)
+      );
+    };
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || askedOnReturn || settled) return;
+      askedOnReturn = true;
+      // A socket can die silently in the background. Closing it ends the
+      // signer's subscription, and the next request opens a new one.
+      try {
+        pool().close(signer.bp.relays);
+      } catch {
+        /* ask anyway */
+      }
+      ask();
+    };
+    const onAbort = () => {
+      cleanup();
+      reject(abortError());
+    };
+
+    if (signal?.aborted) {
+      onAbort();
+      return;
+    }
+    signal?.addEventListener("abort", onAbort, { once: true });
+    document.addEventListener("visibilitychange", onVisible);
+    ask();
+  });
+}
+
 /** A fresh nostrconnect:// link for the signer app to scan or open. */
 export function createConnectRequest(): ConnectRequest {
   const clientSk = generateSecretKey();
@@ -126,26 +228,30 @@ async function finish(
   clientSk: Uint8Array,
   signal?: AbortSignal
 ): Promise<RemoteSession> {
-  const userPubkey = await guard(
-    signer.getPublicKey(),
-    PUBKEY_TIMEOUT_MS,
-    "The signer connected but did not send your public key. Try again.",
-    signal
-  );
+  // The signer approved this client key. Keep the connection now, so a
+  // failed pubkey step can be resumed with the same key instead of a new one.
+  saveRemote(toSaved(signer, clientSk, null));
+  const userPubkey = await askPubkey(signer, signal);
   if (!isHex64(userPubkey)) {
     throw new RemoteSignerError("invalid", "The signer sent an invalid public key.");
   }
+  const pubkey = userPubkey.toLowerCase();
+  return { signer, saved: { ...toSaved(signer, clientSk, pubkey), userPubkey: pubkey } };
+}
+
+function toSaved(
+  signer: BunkerSigner,
+  clientSk: Uint8Array,
+  userPubkey: string | null
+): SavedRemote {
   const bp = signer.bp;
   return {
-    signer,
-    saved: {
-      v: 1,
-      clientSk: bytesToHex(clientSk),
-      bunkerPubkey: bp.pubkey,
-      relays: bp.relays.slice(),
-      secret: bp.secret,
-      userPubkey: userPubkey.toLowerCase(),
-    },
+    v: 1,
+    clientSk: bytesToHex(clientSk),
+    bunkerPubkey: bp.pubkey,
+    relays: bp.relays.slice(),
+    secret: bp.secret,
+    userPubkey,
   };
 }
 
@@ -210,6 +316,24 @@ export async function connectBunker(
       signal
     );
     return await finish(signer, clientSk, signal);
+  } catch (err) {
+    signer.close().catch(() => {});
+    throw err;
+  }
+}
+
+/**
+ * Finishes a saved connection whose login did not complete: same client key
+ * and bunker, so the signer needs no new approval. Asks for the pubkey again.
+ */
+export async function resumePending(
+  saved: SavedRemote,
+  signal: AbortSignal,
+  onauth?: (url: string) => void
+): Promise<RemoteSession> {
+  const signer = resumeRemote(saved, onauth);
+  try {
+    return await finish(signer, hexToBytes(saved.clientSk), signal);
   } catch (err) {
     signer.close().catch(() => {});
     throw err;

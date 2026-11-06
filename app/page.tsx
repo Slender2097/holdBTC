@@ -373,6 +373,8 @@ export default function HomePage() {
         remote={nostr.remote}
         remoteAuthUrl={nostr.remoteAuthUrl}
         onLoginRemote={nostr.loginWithRemote}
+        onResumeRemote={nostr.resumeRemoteLogin}
+        onStartOverRemote={nostr.startOverRemoteLogin}
         onLoginBunker={nostr.loginWithBunker}
         onCancelRemote={nostr.cancelRemoteLogin}
         onLogout={nostr.logout}
