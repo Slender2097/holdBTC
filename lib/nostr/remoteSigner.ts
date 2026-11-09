@@ -54,9 +54,19 @@ export interface ConnectRequest {
 // One pool for every remote session in this tab. Reconnect keeps the
 // subscription alive when a phone drops the socket while the app is in the
 // background.
+//
+// No idle close. In a browser, nostr-tools' ping is a short REQ, and closing it
+// lowers the relay's count of open work without having raised it. So after the
+// first ping (29 s) the signer's own subscription counts as idle, and the
+// default 20 s idle timer closed every signer relay 49 s after it connected:
+// an approval that took longer than that was never heard.
+const NO_IDLE_CLOSE_MS = 24 * 60 * 60 * 1000;
 let sharedPool: SimplePool | null = null;
 function pool(): SimplePool {
-  if (!sharedPool) sharedPool = new SimplePool({ enableReconnect: true, enablePing: true });
+  if (!sharedPool) {
+    sharedPool = new SimplePool({ enableReconnect: true, enablePing: true });
+    sharedPool.idleTimeout = NO_IDLE_CLOSE_MS;
+  }
   return sharedPool;
 }
 
@@ -349,6 +359,69 @@ export function resumeRemote(saved: SavedRemote, onauth?: (url: string) => void)
   );
 }
 
+/**
+ * Sends sign_event and waits for the answer.
+ *
+ * On a phone the player approves in the signer app while this page sleeps.
+ * If the relay socket died meanwhile, the answer is lost: NIP-46 messages are
+ * ephemeral, so no relay sends it again. So each time the page comes back to
+ * the foreground with no answer yet, open fresh relay sockets and send the
+ * same request again. The first answer wins; each ask gets the full window.
+ */
+function askSign(signer: BunkerSigner, template: EventTemplate): Promise<Event> {
+  return new Promise<Event>((resolve, reject) => {
+    let settled = false;
+    let attempt = 0;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const settle = (done: () => void) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      done();
+    };
+    const ask = () => {
+      const n = ++attempt;
+      clearTimeout(timer);
+      timer = setTimeout(
+        () =>
+          settle(() =>
+            reject(
+              new RemoteSignerError(
+                "timeout",
+                "Your signer app did not answer. Open it, approve the request, and try again."
+              )
+            )
+          ),
+        SIGN_TIMEOUT_MS
+      );
+      signer.signEvent(template).then(
+        (signed) => settle(() => resolve(signed)),
+        // A reply from the signer (a denial) ends it, whichever ask it answers.
+        // A send that failed counts only for the newest ask.
+        (err) => {
+          if (n === attempt || typeof err === "string") settle(() => reject(err));
+        }
+      );
+    };
+    const onVisible = () => {
+      if (document.visibilityState !== "visible" || settled) return;
+      // Same as the pubkey step: closing the sockets ends the signer's
+      // subscription, and the next request opens a new one.
+      try {
+        pool().close(signer.bp.relays);
+      } catch {
+        /* ask anyway */
+      }
+      ask();
+    };
+
+    document.addEventListener("visibilitychange", onVisible);
+    ask();
+  });
+}
+
 /** Signs with the remote signer and checks the event is from the logged-in account. */
 export async function remoteSign(
   signer: BunkerSigner,
@@ -357,11 +430,7 @@ export async function remoteSign(
 ): Promise<Event> {
   let signed: Event;
   try {
-    signed = await guard(
-      signer.signEvent(template),
-      SIGN_TIMEOUT_MS,
-      "Your signer app did not answer. Open it, approve the request, and try again."
-    );
+    signed = await askSign(signer, template);
   } catch (err) {
     throw new Error(remoteErrorMessage(err, "Remote signing failed"));
   }
