@@ -51,6 +51,11 @@ function getCtx(canvas: HTMLCanvasElement) {
   return canvas.getContext("2d", { alpha: true, desynchronized: !isPhone() });
 }
 
+// Phone canvas backing store cap (desktop stays at 1.5x): 1x, so a 390 px
+// board is a 390 px backing store on any phone. Under CPU throttle, 1.25x
+// still dropped about 4x as many frames as 1x in a ranked run.
+const PHONE_MAX_DPR = 1;
+
 // Phone free play: the fixed step for one frame, from the median of the last
 // GAP_SAMPLES frame gaps. A hitch is one long gap and does not move the
 // median; a phone that really runs at 30 Hz (power saving) moves it within
@@ -173,11 +178,11 @@ export default function GameCanvas({
     if (startedRef.current) return;
 
     // Backing store only; the logical board size (w, h), the ranked step and
-    // the replay width/height stay the same. Every device caps at 1.5x, so a
-    // 390 px board is a 585 px backing store on a 2x or 3x phone: the coin,
-    // pips, year and HUD text are sharp. A phone has no year video next to the
-    // loop (YearStill only), which is what made more pixels lag there.
-    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    // the replay width/height stay the same. Desktop caps at 1.5x. A phone
+    // caps at PHONE_MAX_DPR: the canvas pixels (raster and hand-off to the
+    // compositor every frame) are most of a phone frame's cost, far more than
+    // the game loop itself.
+    const dpr = Math.min(window.devicePixelRatio || 1, isPhone() ? PHONE_MAX_DPR : 1.5);
     const w = parent.clientWidth;
     const h = parent.clientHeight || Math.min(window.innerHeight * 0.72, 640);
 
@@ -265,7 +270,7 @@ export default function GameCanvas({
             height: ph,
           });
         }
-        renderFrame(ctx, view, viewW, viewH);
+        renderFrame(ctx, view, viewW, viewH, phoneRef.current && view.isPlaying);
       } else {
         const elapsed = lastTimeRef.current ? time - lastTimeRef.current : 16.666;
         lastTimeRef.current = time;
@@ -281,7 +286,7 @@ export default function GameCanvas({
         const next = updateGame(prev, dt, viewW, viewH, Math.random);
         stateRef.current = next;
         if (next.score !== prev.score && onScoreChange) onScoreChange(next.score);
-        renderFrame(ctx, next, viewW, viewH);
+        renderFrame(ctx, next, viewW, viewH, phoneRef.current && next.isPlaying);
         if (next.isGameOver && !prev.isGameOver && !gameOverSent.current) {
           gameOverSent.current = true;
           stopMusic();

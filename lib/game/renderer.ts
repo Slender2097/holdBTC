@@ -18,7 +18,8 @@ export function drawBackground(
   ctx: CanvasRenderingContext2D,
   width: number,
   height: number,
-  state: GameState
+  state: GameState,
+  lite = false
 ) {
   const year = getYearFromScore(state.score);
   const theme = getYearTheme(year);
@@ -37,7 +38,7 @@ export function drawBackground(
   ctx.fillStyle = wash;
   ctx.fillRect(0, 0, width, height);
 
-  drawHistoryClips(ctx, width, height, state, year, theme.accent);
+  if (!lite) drawHistoryClips(ctx, width, height, state, year, theme.accent);
 
   ctx.save();
   ctx.globalAlpha = 0.08;
@@ -184,7 +185,8 @@ export function drawHUD(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   width: number,
-  height: number
+  height: number,
+  lite = false
 ) {
   const year = getYearFromScore(state.score);
   const theme = getYearTheme(year);
@@ -194,8 +196,10 @@ export function drawHUD(
   ctx.textAlign = "center";
   ctx.textBaseline = "top";
   ctx.font = `bold ${Math.max(28, Math.min(42, width * 0.07))}px ${font}`;
-  ctx.fillStyle = "rgba(0,0,0,0.18)";
-  ctx.fillText(String(state.score), width / 2 + 2, 18);
+  if (!lite) {
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillText(String(state.score), width / 2 + 2, 18);
+  }
   ctx.fillStyle = INK;
   ctx.fillText(String(state.score), width / 2, 16);
 
@@ -218,16 +222,22 @@ export function drawHUD(
   ctx.restore();
 }
 
+/**
+ * lite: a phone during a run. No drifting history clips (drawn only in years
+ * without a still, 2027 on) and no offset shadow copy of the score. Drawing
+ * only; the game state is not touched.
+ */
 export function renderFrame(
   ctx: CanvasRenderingContext2D,
   state: GameState,
   width: number,
-  height: number
+  height: number,
+  lite = false
 ) {
-  drawBackground(ctx, width, height, state);
+  drawBackground(ctx, width, height, state, lite);
   for (const c of state.candlesticks) drawCandlestick(ctx, c);
   drawBird(ctx, state.bird);
-  drawHUD(ctx, state, width, height);
+  drawHUD(ctx, state, width, height, lite);
 }
 
 export function resetFrameDamage() {}
