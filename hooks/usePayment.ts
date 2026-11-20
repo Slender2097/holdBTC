@@ -49,6 +49,8 @@ function saveInvoice(saved: SavedInvoice | null) {
 export function usePayment() {
   const [hasPaid, setHasPaid] = useState(false);
   const [paying, setPaying] = useState(false);
+  // The invoice's Nostr signature is being asked for (extension or remote signer)
+  const [signing, setSigning] = useState(false);
   const [invoice, setInvoice] = useState<InvoiceData | null>(null);
   const [invoicePaid, setInvoicePaid] = useState(false);
   const [invoiceHidden, setInvoiceHidden] = useState(false);
@@ -304,6 +306,7 @@ export function usePayment() {
     setPaying(true);
 
     let authEvent;
+    setSigning(true);
     try {
       authEvent = await signRankedAuth({
         pubkey: pk,
@@ -314,6 +317,8 @@ export function usePayment() {
       setPaying(false);
       setError(err?.message || "Use a Nostr extension to pay for ranked entry.");
       return { success: false, method: "none" as const, error: err?.message };
+    } finally {
+      setSigning(false);
     }
 
     const created = await createInvoice(pk, authEvent);
@@ -339,6 +344,7 @@ export function usePayment() {
   return {
     hasPaid,
     paying,
+    signing,
     invoice,
     invoicePaid,
     invoiceHidden,

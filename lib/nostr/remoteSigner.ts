@@ -39,7 +39,22 @@ export const CONNECT_TIMEOUT_MS = 120_000;
 const PUBKEY_TIMEOUT_MS = 30_000;
 // Phones: the player is in the signer app, and the browser may sleep.
 const PUBKEY_TIMEOUT_PHONE_MS = 60_000;
+// Signing. A signer that is open answers within a second or two, even when
+// the player still has to approve: it answers our pings. One that is closed
+// never hears the request at all, and relays do not keep NIP-46 messages, so
+// waiting longer only delays the error. So: give up after SIGN_NO_ANSWER_MS of
+// silence, but wait the full SIGN_TIMEOUT_MS once the signer has answered
+// anything, or while the page is in the background (the player is in the
+// signer app).
 const SIGN_TIMEOUT_MS = 90_000;
+export const SIGN_NO_ANSWER_MS = 20_000;
+const SIGN_PING_MS = 3_000;
+
+const SIGN_NO_ANSWER_MESSAGE =
+  "Primal (your remote signer) did not answer. Open the Primal app and try again. " +
+  "If it still does not answer, log out and log in with Primal again to reconnect.";
+const SIGN_NOT_APPROVED_MESSAGE =
+  "Primal did not send the signature. Approve the request in the Primal app and try again.";
 
 export interface RemoteSession {
   signer: BunkerSigner;
@@ -362,40 +377,95 @@ export function resumeRemote(saved: SavedRemote, onauth?: (url: string) => void)
 /**
  * Sends sign_event and waits for the answer.
  *
+ * With the request goes a NIP-46 ping, repeated every SIGN_PING_MS. Any
+ * answer to a ping (pong, or an error) means the signer is listening:
+ * - If it answers the first ping, it got the request too. Wait the full
+ *   SIGN_TIMEOUT_MS for the player to approve.
+ * - If only a later ping is answered, the signer app was opened after the
+ *   request went out and never saw it. Send the request again.
+ * - No answer at all for SIGN_NO_ANSWER_MS while the page is in front: the
+ *   signer app is closed or offline. Fail now, with what to do.
+ *
  * On a phone the player approves in the signer app while this page sleeps.
- * If the relay socket died meanwhile, the answer is lost: NIP-46 messages are
- * ephemeral, so no relay sends it again. So each time the page comes back to
- * the foreground with no answer yet, open fresh relay sockets and send the
- * same request again. The first answer wins; each ask gets the full window.
+ * The background counts as approving, so it gets the full window. If the
+ * relay socket died meanwhile, the answer is lost: no relay sends it again.
+ * So each time the page comes back to the foreground with no answer yet,
+ * open fresh relay sockets and send the same request again. The first answer
+ * wins. A denial from the signer ends it right away.
  */
 function askSign(signer: BunkerSigner, template: EventTemplate): Promise<Event> {
   return new Promise<Event>((resolve, reject) => {
     let settled = false;
     let attempt = 0;
+    let askedAt = 0;
+    // The signer answered something since the current ask went out.
+    let heard = false;
+    // The page was in the background since the current ask went out.
+    let away = false;
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let pinger: ReturnType<typeof setInterval> | undefined;
 
     const settle = (done: () => void) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisible);
+      clearInterval(pinger);
+      document.removeEventListener("visibilitychange", onVisibility);
       done();
     };
-    const ask = () => {
-      const n = ++attempt;
+    // (Re)starts the timeout for the current ask: short while nothing was
+    // heard and the page stayed in front, full otherwise.
+    const arm = () => {
       clearTimeout(timer);
+      const windowMs = heard || away ? SIGN_TIMEOUT_MS : SIGN_NO_ANSWER_MS;
       timer = setTimeout(
         () =>
           settle(() =>
             reject(
               new RemoteSignerError(
                 "timeout",
-                "Your signer app did not answer. Open it, approve the request, and try again."
+                heard ? SIGN_NOT_APPROVED_MESSAGE : SIGN_NO_ANSWER_MESSAGE
               )
             )
           ),
-        SIGN_TIMEOUT_MS
+        Math.max(0, askedAt + windowMs - Date.now())
       );
+    };
+    // The signer answered ping k of ask n.
+    const onAlive = (n: number, k: number) => {
+      if (settled || heard) return;
+      clearInterval(pinger);
+      if (n === attempt && k > 1) {
+        // It was not listening when this ask went out: send it again.
+        ask(true);
+        return;
+      }
+      heard = true;
+      arm();
+    };
+    const startPings = (n: number) => {
+      clearInterval(pinger);
+      let k = 0;
+      const ping = () => {
+        const i = ++k;
+        signer.sendRequest("ping", []).then(
+          () => onAlive(n, i),
+          // A string is the signer's own error reply: it is listening. An
+          // Error is a send that failed: nothing heard.
+          (err) => {
+            if (typeof err === "string") onAlive(n, i);
+          }
+        );
+      };
+      ping();
+      pinger = setInterval(ping, SIGN_PING_MS);
+    };
+    const ask = (alive = false) => {
+      const n = ++attempt;
+      askedAt = Date.now();
+      heard = alive;
+      away = document.visibilityState === "hidden";
+      arm();
       signer.signEvent(template).then(
         (signed) => settle(() => resolve(signed)),
         // A reply from the signer (a denial) ends it, whichever ask it answers.
@@ -404,9 +474,17 @@ function askSign(signer: BunkerSigner, template: EventTemplate): Promise<Event> 
           if (n === attempt || typeof err === "string") settle(() => reject(err));
         }
       );
+      if (alive) clearInterval(pinger);
+      else startPings(n);
     };
-    const onVisible = () => {
-      if (document.visibilityState !== "visible" || settled) return;
+    const onVisibility = () => {
+      if (settled) return;
+      if (document.visibilityState !== "visible") {
+        // Most likely in the signer app, approving: wait the full window.
+        away = true;
+        arm();
+        return;
+      }
       // Same as the pubkey step: closing the sockets ends the signer's
       // subscription, and the next request opens a new one.
       try {
@@ -417,7 +495,7 @@ function askSign(signer: BunkerSigner, template: EventTemplate): Promise<Event> 
       ask();
     };
 
-    document.addEventListener("visibilitychange", onVisible);
+    document.addEventListener("visibilitychange", onVisibility);
     ask();
   });
 }
