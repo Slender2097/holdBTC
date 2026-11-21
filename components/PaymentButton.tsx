@@ -7,6 +7,8 @@ interface PaymentButtonProps {
   paying: boolean;
   onPay: () => void;
   disabled?: boolean;
+  /** A remote signer (Primal) has not signed after a few seconds: say what we wait for. */
+  waitingForSigner?: boolean;
 }
 
 export default function PaymentButton({
@@ -14,6 +16,7 @@ export default function PaymentButton({
   paying,
   onPay,
   disabled,
+  waitingForSigner,
 }: PaymentButtonProps) {
   if (hasPaid) {
     return (
@@ -34,7 +37,7 @@ export default function PaymentButton({
         {paying ? (
           <>
             <span className="w-3.5 h-3.5 border-2 border-alien-void/30 border-t-alien-void rounded-full animate-spin" />
-            CONNECTING
+            {waitingForSigner ? "WAITING FOR PRIMAL" : "CONNECTING"}
           </>
         ) : (
           <span>RANKED<span className="max-sm:hidden"> ENTRY</span> — {ENTRY_FEE_SATS} SATS</span>

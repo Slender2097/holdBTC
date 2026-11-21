@@ -13,6 +13,7 @@ import { preloadStartClip } from "@/components/year/YearStage";
 import { preloadStartStill } from "@/components/year/YearStill";
 import { useNostr } from "@/hooks/useNostr";
 import { usePayment } from "@/hooks/usePayment";
+import { useDelayedFlag } from "@/hooks/useDelayedFlag";
 import { warmRankedMusic } from "@/lib/game/music";
 
 // Cashu wallet: loaded only when the player taps 50% OFF, so cashu-ts and
@@ -22,6 +23,9 @@ const CashuWalletPanel = dynamic(() => import("@/components/CashuWalletPanel"), 
 type RunLog = { flaps: number[]; frames: number; width: number; height: number };
 type PendingRun = { token: string; log: RunLog; score: number; distance: number };
 type SubmitResult = { eventId: string } | { error: string; retryable: boolean };
+
+// RANKED ENTRY with Primal: "WAITING FOR PRIMAL" after this long without a signature.
+const SIGNER_HINT_MS = 4000;
 
 // Phone layout (below lg), same test as the phone CSS in globals.css.
 const PHONE_LAYOUT = "not all and (min-width: 1024px)";
@@ -184,6 +188,14 @@ export default function HomePage() {
       /* ignore */
     }
   }, []);
+
+  // RANKED ENTRY with a remote signer (Primal): after a few seconds without a
+  // signature, say what the page is waiting for. remoteSigner.ts gives up much
+  // sooner when the signer app is closed.
+  const waitingForSigner = useDelayedFlag(
+    payment.signing && nostr.user?.mode === "nip46",
+    SIGNER_HINT_MS
+  );
 
   const handlePayClick = useCallback(async () => {
     if (!nostr.isLoggedIn || !nostr.user?.pubkey) {
@@ -390,6 +402,7 @@ export default function HomePage() {
                 hasPaid={payment.hasPaid}
                 paying={payment.paying || !!payment.invoice}
                 onPay={handlePayClick}
+                waitingForSigner={waitingForSigner}
               />
               {/* Always rendered so the phone layout never shifts; off while a ranked run is ready */}
               <CashuButton onOpen={handleCashuOpen} disabled={payment.hasPaid} />
@@ -435,6 +448,16 @@ export default function HomePage() {
           {rankedWarning && (
             <p className="text-sm text-amber-300 bg-amber-950/40 border border-amber-500/30 rounded-lg px-3 py-2 font-mono max-lg:mx-3 max-lg:mt-2 max-lg:text-xs max-lg:py-1.5">
               {rankedWarning}
+            </p>
+          )}
+
+          {waitingForSigner && (
+            <p
+              role="status"
+              className="flex items-center gap-2 text-sm text-alien-cyan bg-cyan-950/40 border border-alien-cyan/30 rounded-lg px-3 py-2 font-mono max-lg:mx-3 max-lg:mt-2 max-lg:text-xs max-lg:py-1.5"
+            >
+              <span className="w-3 h-3 shrink-0 border-2 border-alien-cyan/30 border-t-alien-cyan rounded-full animate-spin" />
+              <span>Waiting for Primal… Open the app and approve the request.</span>
             </p>
           )}
 
